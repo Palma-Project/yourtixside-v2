@@ -17,11 +17,18 @@ import { SystemStatusModal } from './components/SystemStatusModal';
 import { LiveSupportModal } from './components/LiveSupportModal';
 import { LocationPrompt } from './components/LocationPrompt';
 import { EventDetail } from './pages/EventDetail';
+import { VoteDetail } from './pages/VoteDetail';
 import { getEventById } from './data/events';
+import { getPollById } from './data/polls';
 import { useGeolocation } from './hooks/useGeolocation';
 
 function getEventIdFromPath(): string | null {
   const match = window.location.pathname.match(/^\/events\/([^/]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+function getPollIdFromPath(): string | null {
+  const match = window.location.pathname.match(/^\/vote\/([^/]+)/);
   return match ? decodeURIComponent(match[1]) : null;
 }
 
@@ -63,11 +70,16 @@ export default function App() {
     }
   };
 
-  // Lightweight client-side routing (no router dependency): "/" = home, "/events/:id" = detail
+  // Lightweight client-side routing (no router dependency): "/" = home,
+  // "/events/:id" = event detail, "/vote/:id" = vote detail
   const [eventId, setEventId] = useState<string | null>(() => getEventIdFromPath());
+  const [pollId, setPollId] = useState<string | null>(() => getPollIdFromPath());
 
   useEffect(() => {
-    const onPopState = () => setEventId(getEventIdFromPath());
+    const onPopState = () => {
+      setEventId(getEventIdFromPath());
+      setPollId(getPollIdFromPath());
+    };
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
@@ -75,12 +87,21 @@ export default function App() {
   const openEvent = useCallback((id: string) => {
     window.history.pushState({}, '', `/events/${id}`);
     setEventId(id);
+    setPollId(null);
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+  }, []);
+
+  const openPoll = useCallback((id: string) => {
+    window.history.pushState({}, '', `/vote/${id}`);
+    setPollId(id);
+    setEventId(null);
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   }, []);
 
   const backToHome = useCallback(() => {
     window.history.pushState({}, '', '/');
     setEventId(null);
+    setPollId(null);
   }, []);
 
   const handleOpenPortal = (role?: RoleType) => {
@@ -88,6 +109,7 @@ export default function App() {
   };
 
   const activeEvent = eventId ? getEventById(eventId) : null;
+  const activePoll = pollId ? getPollById(pollId) : null;
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f7f9fb] text-[#191c1e] font-sans selection:bg-[#dc2626] selection:text-white">
@@ -110,6 +132,8 @@ export default function App() {
 
       {activeEvent ? (
         <EventDetail event={activeEvent} onBack={backToHome} />
+      ) : activePoll ? (
+        <VoteDetail poll={activePoll} onBack={backToHome} />
       ) : (
         <>
           {/* Hero */}
@@ -122,7 +146,7 @@ export default function App() {
           <EventsSection searchQuery={searchQuery} onOpenEvent={openEvent} />
 
           {/* Voting / polls */}
-          <VotingSection />
+          <VotingSection onOpenPoll={openPoll} />
         </>
       )}
 

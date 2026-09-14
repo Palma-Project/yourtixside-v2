@@ -8,7 +8,11 @@ import { polls } from '../data/polls';
 import { VoteCard } from './VoteCard';
 import { useLanguage } from '../i18n/LanguageContext';
 
-export const VotingSection: React.FC = () => {
+interface VotingSectionProps {
+  onOpenPoll: (id: string) => void;
+}
+
+export const VotingSection: React.FC<VotingSectionProps> = ({ onOpenPoll }) => {
   const { t } = useLanguage();
 
   return (
@@ -26,7 +30,7 @@ export const VotingSection: React.FC = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {polls.map((poll) => (
-            <VoteCard key={poll.id} poll={poll} />
+            <VoteCard key={poll.id} poll={poll} onOpen={onOpenPoll} />
           ))}
         </div>
       </div>
