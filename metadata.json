@@ -1,0 +1,6 @@
+{
+  "name": "yourtixside",
+  "description": "Platform observabilitas dan pendukung operasional resmi untuk seluruh ekosistem acara yourtix.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
