@@ -1,5 +1,7 @@
 import React from 'react';
+import { ArrowRight } from 'lucide-react';
 import { RoleType } from '../types';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface HeroSectionProps {
   onOpenRole: (role: RoleType) => void;
@@ -7,41 +9,43 @@ interface HeroSectionProps {
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenRole, onOpenSupport }) => {
+  const { t } = useLanguage();
+
   return (
-    <section className="relative overflow-hidden pt-10 pb-16 md:pt-16 md:pb-24 bg-gradient-to-b from-white via-[#f7f9fb] to-[#f7f9fb] border-b border-[#e2e8f0]">
+    <section className="relative overflow-hidden pt-14 pb-20 md:pt-20 md:pb-28 bg-gradient-to-b from-white via-[#f7f9fb] to-[#f7f9fb] border-b border-[#e2e8f0]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         {/* Left Content */}
-        <div className="lg:col-span-7 space-y-6">
-          <h1 className="text-[32px] sm:text-[38px] lg:text-[44px] leading-[1.18] font-extrabold text-[#191c1e] tracking-tight">
-            “Semua kebutuhan operasional event,{' '}
-            <span className="text-[#dc2626]">dalam satu tempat.</span>”
+        <div className="lg:col-span-7 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+          <h1 className="text-[34px] sm:text-[42px] lg:text-[48px] leading-[1.14] font-extrabold text-[#191c1e] tracking-tight">
+            {t.hero.title}{' '}
+            <span className="text-[#dc2626]">{t.hero.titleHighlight}</span>
           </h1>
 
-          <p className="text-[16px] sm:text-[17px] leading-[26px] text-[#565e74] max-w-2xl">
-            yourtixside membantu Event Creator mengelola event, Customer mendapatkan bantuan, dan Operations mengontrol seluruh aktivitas platform.
+          <p className="text-[16px] sm:text-[17px] leading-[27px] text-[#565e74] max-w-2xl">
+            {t.hero.subtitle}
           </p>
 
           <div className="flex flex-wrap items-center gap-4 pt-2">
             <button
               onClick={() => onOpenRole('creator')}
-              className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-[#dc2626] text-white font-semibold text-[14px] hover:bg-[#b91c1c] shadow-sm active:scale-[0.98] transition-all gap-2 cursor-pointer"
+              className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-[#dc2626] text-white font-semibold text-[14px] hover:bg-[#b91c1c] shadow-sm hover:shadow-md active:scale-[0.98] transition-all gap-2 cursor-pointer"
             >
-              <span>Masuk sebagai Event Creator</span>
-              <span className="material-symbols-outlined text-lg">arrow_forward</span>
+              <span>{t.hero.ctaPrimary}</span>
+              <ArrowRight size={17} />
             </button>
 
             <button
               onClick={onOpenSupport}
-              className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-white text-[#191c1e] border border-[#e2e8f0] font-semibold text-[14px] hover:bg-[#f2f4f6] active:scale-[0.98] transition-all cursor-pointer shadow-2xs"
+              className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-white text-[#191c1e] border border-[#e2e8f0] font-semibold text-[14px] hover:bg-[#f2f4f6] active:scale-[0.98] transition-all cursor-pointer shadow-2xs"
             >
-              Saya butuh bantuan
+              {t.hero.ctaSecondary}
             </button>
           </div>
         </div>
 
         {/* Right Visual: Clean SaaS Dashboard Mockup */}
-        <div className="lg:col-span-5">
-          <div className="relative bg-white rounded-2xl border border-[#e2e8f0] shadow-xl p-5 sm:p-6 transition-all hover:shadow-2xl">
+        <div className="lg:col-span-5 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="relative bg-white rounded-2xl border border-[#e2e8f0] shadow-xl p-5 sm:p-6 transition-all hover:shadow-2xl hover:-translate-y-1 duration-500">
             {/* Window chrome header */}
             <div className="flex items-center justify-between pb-3.5 mb-4 border-b border-[#e2e8f0]">
               <div className="flex items-center gap-2">

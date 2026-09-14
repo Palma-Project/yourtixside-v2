@@ -1,0 +1,21 @@
+name: Deploy to Cloudflare Pages
+on:
+  push:
+    branches: [main]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm run build
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.cfk_2949qHVhyPiQl49e2RmXkIDfNdUwiX4qk7Vf8LOn806d3656 }}
+          accountId: ${{ secrets.0efca81d1c759069add9200e2fe5e444 }}
+          command: pages deploy dist --project-name=yourtixside-v2

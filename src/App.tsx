@@ -3,16 +3,27 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { RoleType } from './types';
 import { Navbar } from './components/Navbar';
 import { HeroSection } from './components/HeroSection';
+import { EventsSection } from './components/EventsSection';
+import { VotingSection } from './components/VotingSection';
 import { Footer } from './components/Footer';
 import { PortalModal } from './components/PortalModal';
 import { AuthModal } from './components/AuthModal';
 import { InfoModal, InfoModalType } from './components/InfoModal';
 import { SystemStatusModal } from './components/SystemStatusModal';
 import { LiveSupportModal } from './components/LiveSupportModal';
+import { LocationPrompt } from './components/LocationPrompt';
+import { EventDetail } from './pages/EventDetail';
+import { getEventById } from './data/events';
+import { useGeolocation } from './hooks/useGeolocation';
+
+function getEventIdFromPath(): string | null {
+  const match = window.location.pathname.match(/^\/events\/([^/]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
 
 export default function App() {
   // Modal states for interactive features
@@ -22,36 +33,101 @@ export default function App() {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
 
+  // Search
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Geolocation
+  const geo = useGeolocation();
+  const [showLocationPrompt, setShowLocationPrompt] = useState(false);
+
+  useEffect(() => {
+    if (!geo.hasStoredChoice()) {
+      const timer = setTimeout(() => setShowLocationPrompt(true), 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [geo]);
+
+  const handleAcceptLocation = () => {
+    setShowLocationPrompt(false);
+    geo.requestLocation();
+  };
+
+  const handleDeclineLocation = () => {
+    setShowLocationPrompt(false);
+    geo.dismiss();
+  };
+
+  const handleLocationBadgeClick = () => {
+    if (geo.status !== 'granted') {
+      geo.requestLocation();
+    }
+  };
+
+  // Lightweight client-side routing (no router dependency): "/" = home, "/events/:id" = detail
+  const [eventId, setEventId] = useState<string | null>(() => getEventIdFromPath());
+
+  useEffect(() => {
+    const onPopState = () => setEventId(getEventIdFromPath());
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  const openEvent = useCallback((id: string) => {
+    window.history.pushState({}, '', `/events/${id}`);
+    setEventId(id);
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+  }, []);
+
+  const backToHome = useCallback(() => {
+    window.history.pushState({}, '', '/');
+    setEventId(null);
+  }, []);
+
   const handleOpenPortal = (role?: RoleType) => {
     setPortalModalRole(role || 'creator');
   };
 
+  const activeEvent = eventId ? getEventById(eventId) : null;
+
   return (
     <div className="min-h-screen flex flex-col bg-[#f7f9fb] text-[#191c1e] font-sans selection:bg-[#dc2626] selection:text-white">
       {/* ========================================================= */}
-      {/* 1. HEADER (Navbar + Hero)                                 */}
+      {/* NAVBAR (persistent across home + event detail)            */}
       {/* ========================================================= */}
-      <header className="w-full">
-        {/* Navbar */}
-        <Navbar
-          onOpenHome={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          onOpenAbout={() => setInfoModalType('about')}
-          onOpenServices={() => setInfoModalType('services')}
-          onOpenContact={() => setInfoModalType('contact')}
-          onOpenHelps={() => setIsSupportModalOpen(true)}
-          onOpenAuth={(mode) => setAuthModalMode(mode)}
-        />
+      <Navbar
+        onOpenHome={backToHome}
+        onOpenAbout={() => setInfoModalType('about')}
+        onOpenServices={() => setInfoModalType('services')}
+        onOpenContact={() => setInfoModalType('contact')}
+        onOpenHelps={() => setIsSupportModalOpen(true)}
+        onOpenAuth={(mode) => setAuthModalMode(mode)}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        locationLabel={geo.city}
+        locationLoading={geo.status === 'detecting'}
+        onLocationClick={handleLocationBadgeClick}
+      />
 
-        {/* Hero */}
-        <HeroSection
-          onOpenRole={(role) => handleOpenPortal(role)}
-          onOpenSupport={() => setIsSupportModalOpen(true)}
-        />
-      </header>
+      {activeEvent ? (
+        <EventDetail event={activeEvent} onBack={backToHome} />
+      ) : (
+        <>
+          {/* Hero */}
+          <HeroSection
+            onOpenRole={(role) => handleOpenPortal(role)}
+            onOpenSupport={() => setIsSupportModalOpen(true)}
+          />
+
+          {/* Events grid */}
+          <EventsSection searchQuery={searchQuery} onOpenEvent={openEvent} />
+
+          {/* Voting / polls */}
+          <VotingSection />
+        </>
+      )}
 
       {/* ========================================================= */}
-      {/* 2. FOOTER (Product, Support, Company, Legal, Newsletter,  */}
-      {/*           Copyright)                                      */}
+      {/* FOOTER                                                     */}
       {/* ========================================================= */}
       <Footer
         onOpenPortal={handleOpenPortal}
@@ -99,6 +175,10 @@ export default function App() {
 
       {isSupportModalOpen && (
         <LiveSupportModal onClose={() => setIsSupportModalOpen(false)} />
+      )}
+
+      {showLocationPrompt && (
+        <LocationPrompt onAccept={handleAcceptLocation} onDecline={handleDeclineLocation} />
       )}
     </div>
   );
