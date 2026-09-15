@@ -22,6 +22,9 @@ import { CandidateDetail } from './pages/CandidateDetail';
 import { getEventById } from './data/events';
 import { getPollById, getCandidateById } from './data/polls';
 import { useGeolocation } from './hooks/useGeolocation';
+import { useCreatorAuth } from './hooks/useCreatorAuth';
+import { CreatorLogin } from './creator/CreatorLogin';
+import { CreatorDashboard } from './creator/CreatorDashboard';
 
 function getEventIdFromPath(): string | null {
   const match = window.location.pathname.match(/^\/events\/([^/]+)/);
@@ -38,7 +41,33 @@ function getCandidateIdFromPath(): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
+function isCreatorPath(): boolean {
+  return window.location.pathname.startsWith('/creator');
+}
+
 export default function App() {
+  // Event Creator dashboard (separate mock-authenticated area)
+  const creatorAuth = useCreatorAuth();
+  const [onCreatorRoute, setOnCreatorRoute] = useState(() => isCreatorPath());
+
+  useEffect(() => {
+    const onPop = () => setOnCreatorRoute(isCreatorPath());
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  const openCreatorPortal = useCallback(() => {
+    window.history.pushState({}, '', '/creator');
+    setOnCreatorRoute(true);
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+  }, []);
+
+  const exitCreatorPortal = useCallback(() => {
+    window.history.pushState({}, '', '/');
+    setOnCreatorRoute(false);
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+  }, []);
+
   // Modal states for interactive features
   const [portalModalRole, setPortalModalRole] = useState<RoleType | null>(null);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'signup' | null>(null);
@@ -130,6 +159,10 @@ export default function App() {
   }, []);
 
   const handleOpenPortal = (role?: RoleType) => {
+    if (role === 'creator') {
+      openCreatorPortal();
+      return;
+    }
     setPortalModalRole(role || 'creator');
   };
 
@@ -137,6 +170,22 @@ export default function App() {
   const activePoll = pollId ? getPollById(pollId) : null;
   const activeCandidate =
     activePoll && candidateId ? getCandidateById(activePoll, candidateId) : null;
+
+  // Event Creator dashboard is a separate mock-authenticated area — bail out
+  // of the public site shell entirely (no Navbar/Footer) when on /creator.
+  if (onCreatorRoute) {
+    if (!creatorAuth.session) {
+      return <CreatorLogin onLogin={creatorAuth.login} onBackHome={exitCreatorPortal} />;
+    }
+    return (
+      <CreatorDashboard
+        orgName={creatorAuth.session.orgName}
+        contactName={creatorAuth.session.contactName}
+        onLogout={creatorAuth.logout}
+        onBackHome={exitCreatorPortal}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f7f9fb] text-[#191c1e] font-sans selection:bg-[#dc2626] selection:text-white">
