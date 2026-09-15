@@ -18,8 +18,9 @@ import { LiveSupportModal } from './components/LiveSupportModal';
 import { LocationPrompt } from './components/LocationPrompt';
 import { EventDetail } from './pages/EventDetail';
 import { VoteDetail } from './pages/VoteDetail';
+import { CandidateDetail } from './pages/CandidateDetail';
 import { getEventById } from './data/events';
-import { getPollById } from './data/polls';
+import { getPollById, getCandidateById } from './data/polls';
 import { useGeolocation } from './hooks/useGeolocation';
 
 function getEventIdFromPath(): string | null {
@@ -29,6 +30,11 @@ function getEventIdFromPath(): string | null {
 
 function getPollIdFromPath(): string | null {
   const match = window.location.pathname.match(/^\/vote\/([^/]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+function getCandidateIdFromPath(): string | null {
+  const match = window.location.pathname.match(/^\/vote\/[^/]+\/([^/]+)/);
   return match ? decodeURIComponent(match[1]) : null;
 }
 
@@ -74,11 +80,13 @@ export default function App() {
   // "/events/:id" = event detail, "/vote/:id" = vote detail
   const [eventId, setEventId] = useState<string | null>(() => getEventIdFromPath());
   const [pollId, setPollId] = useState<string | null>(() => getPollIdFromPath());
+  const [candidateId, setCandidateId] = useState<string | null>(() => getCandidateIdFromPath());
 
   useEffect(() => {
     const onPopState = () => {
       setEventId(getEventIdFromPath());
       setPollId(getPollIdFromPath());
+      setCandidateId(getCandidateIdFromPath());
     };
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
@@ -88,6 +96,7 @@ export default function App() {
     window.history.pushState({}, '', `/events/${id}`);
     setEventId(id);
     setPollId(null);
+    setCandidateId(null);
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   }, []);
 
@@ -95,6 +104,21 @@ export default function App() {
     window.history.pushState({}, '', `/vote/${id}`);
     setPollId(id);
     setEventId(null);
+    setCandidateId(null);
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+  }, []);
+
+  const openCandidate = useCallback((pid: string, cid: string) => {
+    window.history.pushState({}, '', `/vote/${pid}/${cid}`);
+    setPollId(pid);
+    setCandidateId(cid);
+    setEventId(null);
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+  }, []);
+
+  const backToPoll = useCallback((pid: string) => {
+    window.history.pushState({}, '', `/vote/${pid}`);
+    setCandidateId(null);
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   }, []);
 
@@ -102,6 +126,7 @@ export default function App() {
     window.history.pushState({}, '', '/');
     setEventId(null);
     setPollId(null);
+    setCandidateId(null);
   }, []);
 
   const handleOpenPortal = (role?: RoleType) => {
@@ -110,6 +135,8 @@ export default function App() {
 
   const activeEvent = eventId ? getEventById(eventId) : null;
   const activePoll = pollId ? getPollById(pollId) : null;
+  const activeCandidate =
+    activePoll && candidateId ? getCandidateById(activePoll, candidateId) : null;
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f7f9fb] text-[#191c1e] font-sans selection:bg-[#dc2626] selection:text-white">
@@ -132,8 +159,16 @@ export default function App() {
 
       {activeEvent ? (
         <EventDetail event={activeEvent} onBack={backToHome} />
+      ) : activePoll && activeCandidate ? (
+        <CandidateDetail
+          poll={activePoll}
+          candidate={activeCandidate}
+          onBack={() => backToPoll(activePoll.id)}
+          onOpenCandidate={openCandidate}
+          onBackHome={backToHome}
+        />
       ) : activePoll ? (
-        <VoteDetail poll={activePoll} onBack={backToHome} />
+        <VoteDetail poll={activePoll} onBack={backToHome} onOpenCandidate={openCandidate} />
       ) : (
         <>
           {/* Hero */}
