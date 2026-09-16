@@ -12,8 +12,8 @@ import { useCallback, useState } from 'react';
 const SESSION_KEY = 'yourtixside_creator_session';
 
 export const DEMO_CREDENTIAL = {
-  email: 'demo@yourtix.dev',
-  password: 'demo1234',
+  email: 'eo.demo@yourtix.internal',
+  password: 'Nt7-vQe2-kzR',
   orgName: 'Kolektif Nada Kampus',
   contactName: 'Sarah Amelia',
 };

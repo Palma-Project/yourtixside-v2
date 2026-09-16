@@ -25,6 +25,10 @@ import { useGeolocation } from './hooks/useGeolocation';
 import { useCreatorAuth } from './hooks/useCreatorAuth';
 import { CreatorLogin } from './creator/CreatorLogin';
 import { CreatorDashboard } from './creator/CreatorDashboard';
+import { useSuperadminAuth } from './hooks/useSuperadminAuth';
+import { SuperadminLogin } from './superadmin/SuperadminLogin';
+import { SuperadminDashboard } from './superadmin/SuperadminDashboard';
+import { CustomerPortal } from './customer/CustomerPortal';
 
 function getEventIdFromPath(): string | null {
   const match = window.location.pathname.match(/^\/events\/([^/]+)/);
@@ -45,15 +49,46 @@ function isCreatorPath(): boolean {
   return window.location.pathname.startsWith('/creator');
 }
 
+function isSuperadminPath(): boolean {
+  return window.location.pathname.startsWith('/superadmin');
+}
+
+function isCustomerPath(): boolean {
+  return window.location.pathname.startsWith('/customer');
+}
+
 export default function App() {
   // Event Creator dashboard (separate mock-authenticated area)
   const creatorAuth = useCreatorAuth();
   const [onCreatorRoute, setOnCreatorRoute] = useState(() => isCreatorPath());
 
+  // Superadmin dashboard (separate mock-authenticated area)
+  const superadminAuth = useSuperadminAuth();
+  const [onSuperadminRoute, setOnSuperadminRoute] = useState(() => isSuperadminPath());
+
+  // Customer portal (no login required, single page)
+  const [onCustomerRoute, setOnCustomerRoute] = useState(() => isCustomerPath());
+
   useEffect(() => {
-    const onPop = () => setOnCreatorRoute(isCreatorPath());
+    const onPop = () => {
+      setOnCreatorRoute(isCreatorPath());
+      setOnSuperadminRoute(isSuperadminPath());
+      setOnCustomerRoute(isCustomerPath());
+    };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  const openCustomerPortal = useCallback(() => {
+    window.history.pushState({}, '', '/customer');
+    setOnCustomerRoute(true);
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+  }, []);
+
+  const exitCustomerPortal = useCallback(() => {
+    window.history.pushState({}, '', '/');
+    setOnCustomerRoute(false);
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   }, []);
 
   const openCreatorPortal = useCallback(() => {
@@ -65,6 +100,12 @@ export default function App() {
   const exitCreatorPortal = useCallback(() => {
     window.history.pushState({}, '', '/');
     setOnCreatorRoute(false);
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+  }, []);
+
+  const exitSuperadminPortal = useCallback(() => {
+    window.history.pushState({}, '', '/');
+    setOnSuperadminRoute(false);
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   }, []);
 
@@ -163,6 +204,15 @@ export default function App() {
       openCreatorPortal();
       return;
     }
+    if (role === 'customer') {
+      openCustomerPortal();
+      return;
+    }
+    if (role === 'superadmin') {
+      window.history.pushState({}, '', '/superadmin');
+      setOnSuperadminRoute(true);
+      return;
+    }
     setPortalModalRole(role || 'creator');
   };
 
@@ -185,6 +235,24 @@ export default function App() {
         onBackHome={exitCreatorPortal}
       />
     );
+  }
+
+  if (onSuperadminRoute) {
+    if (!superadminAuth.session) {
+      return <SuperadminLogin onLogin={superadminAuth.login} onBackHome={exitSuperadminPortal} />;
+    }
+    return (
+      <SuperadminDashboard
+        name={superadminAuth.session.name}
+        role={superadminAuth.session.role}
+        onLogout={superadminAuth.logout}
+        onBackHome={exitSuperadminPortal}
+      />
+    );
+  }
+
+  if (onCustomerRoute) {
+    return <CustomerPortal onBackHome={exitCustomerPortal} />;
   }
 
   return (
