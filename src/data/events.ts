@@ -15,6 +15,8 @@ export interface TicketTier {
 
 export interface EventItem {
   id: string;
+  eoId?: string;
+  eoName?: string;
   title: string;
   category: string;
   city: string;

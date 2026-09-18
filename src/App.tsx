@@ -6,7 +6,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { RoleType } from './types';
 import { Navbar } from './components/Navbar';
-import { HeroSection } from './components/HeroSection';
+import { BannerCarousel } from './components/BannerCarousel';
+import { RolesSection } from './components/RolesSection';
+import { TestimonialsSection } from './components/TestimonialsSection';
+import { SystemStatusBanner } from './components/SystemStatusBanner';
 import { EventsSection } from './components/EventsSection';
 import { VotingSection } from './components/VotingSection';
 import { Footer } from './components/Footer';
@@ -19,8 +22,7 @@ import { LocationPrompt } from './components/LocationPrompt';
 import { EventDetail } from './pages/EventDetail';
 import { VoteDetail } from './pages/VoteDetail';
 import { CandidateDetail } from './pages/CandidateDetail';
-import { getEventById } from './data/events';
-import { getPollById, getCandidateById } from './data/polls';
+import { useAppStore } from './store/AppStore';
 import { useGeolocation } from './hooks/useGeolocation';
 import { useCreatorAuth } from './hooks/useCreatorAuth';
 import { CreatorLogin } from './creator/CreatorLogin';
@@ -29,6 +31,7 @@ import { useSuperadminAuth } from './hooks/useSuperadminAuth';
 import { SuperadminLogin } from './superadmin/SuperadminLogin';
 import { SuperadminDashboard } from './superadmin/SuperadminDashboard';
 import { CustomerPortal } from './customer/CustomerPortal';
+import { MinisiteView } from './customer/MinisiteView';
 
 function getEventIdFromPath(): string | null {
   const match = window.location.pathname.match(/^\/events\/([^/]+)/);
@@ -55,6 +58,11 @@ function isSuperadminPath(): boolean {
 
 function isCustomerPath(): boolean {
   return window.location.pathname.startsWith('/customer');
+}
+
+function getMinisiteSlugFromPath(): string | null {
+  const match = window.location.pathname.match(/^\/m\/([^/]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
 }
 
 export default function App() {
@@ -167,6 +175,9 @@ export default function App() {
     setEventId(id);
     setPollId(null);
     setCandidateId(null);
+    setOnCustomerRoute(false);
+    setOnCreatorRoute(false);
+    setOnSuperadminRoute(false);
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   }, []);
 
@@ -175,6 +186,9 @@ export default function App() {
     setPollId(id);
     setEventId(null);
     setCandidateId(null);
+    setOnCustomerRoute(false);
+    setOnCreatorRoute(false);
+    setOnSuperadminRoute(false);
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   }, []);
 
@@ -216,21 +230,33 @@ export default function App() {
     setPortalModalRole(role || 'creator');
   };
 
-  const activeEvent = eventId ? getEventById(eventId) : null;
-  const activePoll = pollId ? getPollById(pollId) : null;
+  const { votes, events } = useAppStore();
+  const activeEvent = eventId ? events.find((e) => e.id === eventId) ?? null : null;
+  const { minisites, banners } = useAppStore();
+  const minisiteSlug = getMinisiteSlugFromPath();
+  const activeMinisite = minisiteSlug ? minisites.find((m) => m.slug === minisiteSlug) ?? null : null;
+  const activePoll = pollId ? votes.find((v) => v.id === pollId) ?? null : null;
   const activeCandidate =
-    activePoll && candidateId ? getCandidateById(activePoll, candidateId) : null;
+    activePoll && candidateId ? activePoll.candidates.find((c) => c.id === candidateId) ?? null : null;
 
   // Event Creator dashboard is a separate mock-authenticated area — bail out
   // of the public site shell entirely (no Navbar/Footer) when on /creator.
   if (onCreatorRoute) {
     if (!creatorAuth.session) {
-      return <CreatorLogin onLogin={creatorAuth.login} onBackHome={exitCreatorPortal} />;
+      return (
+        <CreatorLogin
+          login={creatorAuth.login}
+          signup={creatorAuth.signup}
+          error={creatorAuth.error}
+          onSuccess={() => {}}
+          onBackHome={exitCreatorPortal}
+        />
+      );
     }
     return (
       <CreatorDashboard
-        orgName={creatorAuth.session.orgName}
-        contactName={creatorAuth.session.contactName}
+        account={creatorAuth.session}
+        onUpdateAccount={creatorAuth.updateProfile}
         onLogout={creatorAuth.logout}
         onBackHome={exitCreatorPortal}
       />
@@ -252,7 +278,11 @@ export default function App() {
   }
 
   if (onCustomerRoute) {
-    return <CustomerPortal onBackHome={exitCustomerPortal} />;
+    return <CustomerPortal onBackHome={exitCustomerPortal} onOpenVote={openPoll} />;
+  }
+
+  if (activeMinisite) {
+    return <MinisiteView site={activeMinisite} />;
   }
 
   return (
@@ -260,15 +290,13 @@ export default function App() {
       {/* ========================================================= */}
       {/* NAVBAR (persistent across home + event detail)            */}
       {/* ========================================================= */}
+      <SystemStatusBanner />
       <Navbar
         onOpenHome={backToHome}
-        onOpenAbout={() => setInfoModalType('about')}
-        onOpenServices={() => setInfoModalType('services')}
-        onOpenContact={() => setInfoModalType('contact')}
-        onOpenHelps={() => setIsSupportModalOpen(true)}
         onOpenAuth={(mode) => setAuthModalMode(mode)}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        onSelectSuggestion={(kind, id) => (kind === 'event' ? openEvent(id) : openPoll(id))}
         locationLabel={geo.city}
         locationLoading={geo.status === 'detecting'}
         onLocationClick={handleLocationBadgeClick}
@@ -288,10 +316,15 @@ export default function App() {
         <VoteDetail poll={activePoll} onBack={backToHome} onOpenCandidate={openCandidate} />
       ) : (
         <>
-          {/* Hero */}
-          <HeroSection
-            onOpenRole={(role) => handleOpenPortal(role)}
-            onOpenSupport={() => setIsSupportModalOpen(true)}
+          {/* Banner */}
+          <BannerCarousel
+            banners={banners}
+            onNavigate={(link) => {
+              const voteMatch = link.match(/^\/vote\/([^/]+)/);
+              const eventMatch = link.match(/^\/events\/([^/]+)/);
+              if (voteMatch) openPoll(voteMatch[1]);
+              else if (eventMatch) openEvent(eventMatch[1]);
+            }}
           />
 
           {/* Events grid */}
@@ -299,6 +332,12 @@ export default function App() {
 
           {/* Voting / polls */}
           <VotingSection onOpenPoll={openPoll} />
+
+          {/* 3 entry points: Event Creator / Customer / Superadmin */}
+          <RolesSection onSelectRole={handleOpenPortal} />
+
+          {/* Testimonials (approved + pinned by Superadmin) */}
+          <TestimonialsSection />
         </>
       )}
 

@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { CheckCircle2, Eye, Ban, Camera, Radio, Mail, Briefcase } from 'lucide-react';
-import { eoProfiles as initialEO, globalVotes as initialVotes, EOProfile, GlobalVoteRow } from '../../data/superadminData';
+import { useAppStore, EOAccount } from '../../store/AppStore';
 import { Tabs, SectionCard, StatusBadge, StatPill } from '../../creator/components/ui';
 
 const TOP_TABS = [
@@ -21,7 +21,7 @@ const PROGRAM_SUBTABS = [
   { id: 'affiliate', label: 'Affiliate/Referral' },
 ];
 
-const verifStatusMap: Record<EOProfile['verificationStatus'], string> = {
+const verifStatusMap: Record<EOAccount['verificationStatus'], string> = {
   verified: 'signed',
   pending: 'pending',
   rejected: 'rejected',
@@ -30,14 +30,22 @@ const verifStatusMap: Record<EOProfile['verificationStatus'], string> = {
 export const OperationalPage: React.FC = () => {
   const [active, setActive] = useState('eo');
   const [programTab, setProgramTab] = useState('loyalty');
-  const [eoList, setEoList] = useState<EOProfile[]>(initialEO);
-  const [votes, setVotes] = useState<GlobalVoteRow[]>(initialVotes);
+  const { eoAccounts, setEoAccounts, votes, setVotes, logActivity, systemStatus, setSystemStatus } = useAppStore();
+  const [statusDraft, setStatusDraft] = useState<'normal' | 'maintenance' | 'gangguan'>(systemStatus.status);
+  const [statusMessageDraft, setStatusMessageDraft] = useState(systemStatus.message);
+
+  const publishStatus = () => {
+    setSystemStatus({ status: statusDraft, message: statusMessageDraft });
+    logActivity(`Superadmin mempublikasikan status sistem: ${statusDraft}`);
+  };
+  const eoList = eoAccounts;
   const [votingEnabled, setVotingEnabled] = useState(true);
   const [maxOptions, setMaxOptions] = useState(10);
   const [rateLimit, setRateLimit] = useState(1);
 
   const verifyEO = (id: string) => {
-    setEoList((prev) => prev.map((e) => (e.id === id ? { ...e, verificationStatus: 'verified' } : e)));
+    setEoAccounts((prev) => prev.map((e) => (e.id === id ? { ...e, verificationStatus: 'verified' } : e)));
+    logActivity('Superadmin memverifikasi akun EO baru');
   };
 
   const toggleVoteStatus = (id: string) => {
@@ -66,7 +74,7 @@ export const OperationalPage: React.FC = () => {
               <tbody>
                 {eoList.map((eo) => (
                   <tr key={eo.id} className="border-b border-[#f1f5f9]">
-                    <td className="py-3 pr-4 font-semibold text-[#191c1e]">{eo.name}</td>
+                    <td className="py-3 pr-4 font-semibold text-[#191c1e]">{eo.orgName}</td>
                     <td className="py-3 pr-4">
                       <StatusBadge status={verifStatusMap[eo.verificationStatus]} />
                     </td>
@@ -145,12 +153,12 @@ export const OperationalPage: React.FC = () => {
                 <tbody>
                   {votes.map((v) => (
                     <tr key={v.id} className="border-b border-[#f1f5f9]">
-                      <td className="py-3 pr-4 font-semibold text-[#191c1e]">{v.title}</td>
+                      <td className="py-3 pr-4 font-semibold text-[#191c1e]">{v.question}</td>
                       <td className="py-3 pr-4 text-[#565e74]">{v.eoName}</td>
                       <td className="py-3 pr-4">
                         <StatusBadge status={v.status} />
                       </td>
-                      <td className="py-3 pr-4 text-[#565e74]">{v.totalVotes.toLocaleString('id-ID')}</td>
+                      <td className="py-3 pr-4 text-[#565e74]">{v.candidates.reduce((sum, c) => sum + c.votes, 0).toLocaleString('id-ID')}</td>
                       <td className="py-3 pr-4">
                         {v.status === 'aktif' && (
                           <button
@@ -235,16 +243,18 @@ export const OperationalPage: React.FC = () => {
         <>
           <SectionCard title="Status Sistem" description="Publikasikan info maintenance/gangguan ke Landing Page.">
             <div className="flex flex-wrap items-center gap-3">
-              <select className="px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px] font-semibold">
-                <option>Normal</option>
-                <option>Maintenance Terjadwal</option>
-                <option>Gangguan Sebagian</option>
+              <select value={statusDraft} onChange={(e) => setStatusDraft(e.target.value as typeof statusDraft)} className="px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px] font-semibold">
+                <option value="normal">Normal</option>
+                <option value="maintenance">Maintenance Terjadwal</option>
+                <option value="gangguan">Gangguan Sebagian</option>
               </select>
               <input
+                value={statusMessageDraft}
+                onChange={(e) => setStatusMessageDraft(e.target.value)}
                 placeholder="Pesan status (opsional)"
                 className="flex-1 min-w-[200px] px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px]"
               />
-              <button className="inline-flex items-center gap-1.5 bg-[#dc2626] text-white text-[12.5px] font-bold px-4 py-2.5 rounded-xl hover:bg-[#b91c1c] transition-colors cursor-pointer">
+              <button onClick={publishStatus} className="inline-flex items-center gap-1.5 bg-[#dc2626] text-white text-[12.5px] font-bold px-4 py-2.5 rounded-xl hover:bg-[#b91c1c] transition-colors cursor-pointer">
                 <Radio size={13} />
                 Publikasikan
               </button>

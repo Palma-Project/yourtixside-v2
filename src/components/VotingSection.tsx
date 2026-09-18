@@ -4,9 +4,9 @@
  */
 
 import React from 'react';
-import { polls } from '../data/polls';
 import { VoteCard } from './VoteCard';
 import { useLanguage } from '../i18n/LanguageContext';
+import { useAppStore } from '../store/AppStore';
 
 interface VotingSectionProps {
   onOpenPoll: (id: string) => void;
@@ -14,6 +14,8 @@ interface VotingSectionProps {
 
 export const VotingSection: React.FC<VotingSectionProps> = ({ onOpenPoll }) => {
   const { t } = useLanguage();
+  const { votes } = useAppStore();
+  const activePolls = votes.filter((v) => (v.status ?? 'aktif') === 'aktif');
 
   return (
     <section id="voting" className="py-16 sm:py-20 bg-[#f7f9fb] border-b border-[#e2e8f0]">
@@ -29,7 +31,7 @@ export const VotingSection: React.FC<VotingSectionProps> = ({ onOpenPoll }) => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {polls.map((poll) => (
+          {activePolls.map((poll) => (
             <VoteCard key={poll.id} poll={poll} onOpen={onOpenPoll} />
           ))}
         </div>

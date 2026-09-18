@@ -15,7 +15,6 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { Poll, totalVotes } from '../data/polls';
-import { getVoteDeltas } from '../lib/voteStorage';
 import { useLanguage } from '../i18n/LanguageContext';
 
 interface VoteDetailProps {
@@ -30,12 +29,7 @@ export const VoteDetail: React.FC<VoteDetailProps> = ({ poll, onOpenCandidate })
   const [showAll, setShowAll] = useState(false);
 
   const locale = lang === 'id' ? 'id-ID' : 'en-US';
-  const deltas = useMemo(() => getVoteDeltas(poll.id), [poll.id]);
-
-  const candidatesWithVotes = useMemo(
-    () => poll.candidates.map((c) => ({ ...c, votes: c.votes + (deltas[c.id] || 0) })),
-    [poll.candidates, deltas]
-  );
+  const candidatesWithVotes = poll.candidates;
 
   const total = useMemo(
     () => candidatesWithVotes.reduce((sum, c) => sum + c.votes, 0),

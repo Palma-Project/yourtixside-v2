@@ -5,15 +5,8 @@
 
 import React, { useState } from 'react';
 import { CheckCircle2, XCircle, Send, Plus, Trash2 } from 'lucide-react';
-import {
-  docRequests as initialDocRequests,
-  documentTypes,
-  chatConversations,
-  complaints as initialComplaints,
-  DocRequest,
-  Complaint,
-  ComplaintCategory,
-} from '../../data/superadminData';
+import { documentTypes } from '../../data/superadminData';
+import { useAppStore, ComplaintCategory } from '../../store/AppStore';
 import { Tabs, SectionCard, StatusBadge, EmptyState } from '../../creator/components/ui';
 
 const TOP_TABS = [
@@ -29,7 +22,7 @@ const ESIGN_SUBTABS = [
 
 const COMPLAINT_FILTERS: (ComplaintCategory | 'Semua')[] = ['Semua', 'Refund', 'Komplain Umum', 'Lapor Penipuan'];
 
-const complaintStatusMap: Record<Complaint['status'], string> = {
+const complaintStatusMap: Record<'diproses' | 'menunggu-dokumen' | 'selesai', string> = {
   diproses: 'diproses',
   'menunggu-dokumen': 'pending',
   selesai: 'selesai',
@@ -38,17 +31,29 @@ const complaintStatusMap: Record<Complaint['status'], string> = {
 export const DocSupportPage: React.FC = () => {
   const [active, setActive] = useState('signature');
   const [esignTab, setEsignTab] = useState('requests');
-  const [docs, setDocs] = useState<DocRequest[]>(initialDocRequests);
-  const [activeChatId, setActiveChatId] = useState(chatConversations[0]?.id ?? '');
-  const [complaints, setComplaints] = useState<Complaint[]>(initialComplaints);
+  const { documents: docs, setDocuments: setDocs, chats, setChats, complaints, setComplaints, logActivity } = useAppStore();
+  const [activeChatId, setActiveChatId] = useState(chats[0]?.id ?? '');
   const [complaintFilter, setComplaintFilter] = useState<ComplaintCategory | 'Semua'>('Semua');
   const [reply, setReply] = useState('');
 
   const reviewDoc = (id: string, status: 'signed' | 'rejected') => {
     setDocs((prev) => prev.map((d) => (d.id === id ? { ...d, status } : d)));
+    logActivity(`Dokumen ${status === 'signed' ? 'disetujui' : 'ditolak'} oleh Superadmin`);
   };
 
-  const activeChat = chatConversations.find((c) => c.id === activeChatId);
+  const activeChat = chats.find((c) => c.id === activeChatId) ?? chats[0];
+
+  const sendReply = () => {
+    if (!reply.trim() || !activeChat) return;
+    setChats((prev) =>
+      prev.map((c) =>
+        c.id === activeChat.id
+          ? { ...c, unread: false, messages: [...c.messages, { id: `m${Date.now()}`, from: 'agent', text: reply, time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) }] }
+          : c
+      )
+    );
+    setReply('');
+  };
 
   const advanceComplaint = (id: string) => {
     setComplaints((prev) =>
@@ -76,9 +81,9 @@ export const DocSupportPage: React.FC = () => {
                 {docs.map((d) => (
                   <div key={d.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-[#e2e8f0] p-3.5">
                     <div className="min-w-0 flex-1">
-                      <div className="text-[13.5px] font-semibold text-[#191c1e] truncate">{d.docName}</div>
+                      <div className="text-[13.5px] font-semibold text-[#191c1e] truncate">{d.name}</div>
                       <div className="text-[11.5px] text-[#94a3b8]">
-                        {d.eoName} • {d.docType} • diajukan {d.submittedAt}
+                        {d.eoName} • {d.type} • diajukan {d.submittedAt}
                       </div>
                     </div>
                     <StatusBadge status={d.status} />
@@ -137,7 +142,7 @@ export const DocSupportPage: React.FC = () => {
       {active === 'chat' && (
         <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm overflow-hidden grid grid-cols-1 sm:grid-cols-[240px_1fr] h-[520px]">
           <div className="border-r border-[#e2e8f0] overflow-y-auto">
-            {chatConversations.map((c) => (
+            {chats.map((c) => (
               <button
                 key={c.id}
                 onClick={() => setActiveChatId(c.id)}
@@ -149,8 +154,7 @@ export const DocSupportPage: React.FC = () => {
                   <span className="text-[13px] font-bold text-[#191c1e] truncate">{c.customerName}</span>
                   {c.unread && <span className="w-2 h-2 rounded-full bg-[#dc2626] shrink-0" />}
                 </div>
-                <p className="text-[11.5px] text-[#94a3b8] truncate">{c.lastMessage}</p>
-                <span className="text-[10.5px] text-[#cbd5e1]">{c.lastMessageTime}</span>
+                <p className="text-[11.5px] text-[#94a3b8] truncate">{c.messages[c.messages.length - 1]?.text ?? '—'}</p>
               </button>
             ))}
           </div>
@@ -178,11 +182,12 @@ export const DocSupportPage: React.FC = () => {
                   <input
                     value={reply}
                     onChange={(e) => setReply(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && sendReply()}
                     placeholder="Balas pesan..."
                     className="flex-1 px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13px]"
                   />
                   <button
-                    onClick={() => setReply('')}
+                    onClick={sendReply}
                     className="w-10 h-10 rounded-xl bg-[#dc2626] text-white flex items-center justify-center hover:bg-[#b91c1c] transition-colors cursor-pointer shrink-0"
                   >
                     <Send size={16} />

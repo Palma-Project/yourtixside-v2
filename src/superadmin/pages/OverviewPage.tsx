@@ -5,7 +5,8 @@
 
 import React from 'react';
 import { FileSignature, MessageCircle, AlertTriangle, Building2, Clock } from 'lucide-react';
-import { docRequests, complaints, chatConversations, eoProfiles, needsAttention, recentActivity } from '../../data/superadminData';
+import { needsAttention } from '../../data/superadminData';
+import { useAppStore } from '../../store/AppStore';
 import { SectionCard, StatPill } from '../../creator/components/ui';
 import { SuperadminSection } from '../SuperadminDashboard';
 
@@ -14,10 +15,13 @@ interface OverviewPageProps {
 }
 
 export const OverviewPage: React.FC<OverviewPageProps> = ({ onNavigate }) => {
+  const { complaints, documents, chats, eoAccounts, votes, activityLog } = useAppStore();
   const pendingComplaints = complaints.filter((c) => c.status !== 'selesai').length;
-  const pendingDocs = docRequests.filter((d) => d.status === 'pending').length;
-  const activeChats = chatConversations.length;
-  const verifiedEO = eoProfiles.filter((e) => e.verificationStatus === 'verified').length;
+  const pendingDocs = documents.filter((d) => d.status === 'pending').length;
+  const activeChats = chats.length;
+  const verifiedEO = eoAccounts.filter((e) => e.verificationStatus === 'verified').length;
+  const pendingEOVerification = eoAccounts.filter((e) => e.verificationStatus === 'pending').length;
+  const activeVotes = votes.filter((v) => (v.status ?? 'aktif') === 'aktif').length;
 
   return (
     <div>
@@ -35,12 +39,20 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ onNavigate }) => {
           <StatPill label="EO Terverifikasi" value={verifiedEO} icon={<Building2 size={15} />} />
         </button>
       </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-5">
+        <button onClick={() => onNavigate('admin')} className="text-left cursor-pointer">
+          <StatPill label="EO Menunggu Verifikasi" value={pendingEOVerification} icon={<Building2 size={15} />} />
+        </button>
+        <button onClick={() => onNavigate('operational')} className="text-left cursor-pointer">
+          <StatPill label="Vote Aktif" value={activeVotes} icon={<AlertTriangle size={15} />} />
+        </button>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2">
           <SectionCard title="Aktivitas Terbaru" description="Kejadian terbaru dari seluruh modul.">
             <div className="space-y-3">
-              {recentActivity.map((a) => (
+              {activityLog.map((a) => (
                 <div key={a.id} className="flex items-start gap-3 text-[13px]">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#dc2626] mt-1.5 shrink-0" />
                   <div className="flex-1 min-w-0">

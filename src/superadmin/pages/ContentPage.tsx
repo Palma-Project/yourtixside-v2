@@ -5,13 +5,16 @@
 
 import React, { useState } from 'react';
 import { Plus, Pin, CheckCircle2, XCircle, FileImage, Download } from 'lucide-react';
-import { faqItems, blogPosts, testimonials as initialTestimonials, Testimonial } from '../../data/superadminData';
+import { blogPosts } from '../../data/superadminData';
 import { brandAssets } from '../../data/creatorData';
+import { useAppStore } from '../../store/AppStore';
 import { Tabs, SectionCard, StatusBadge } from '../../creator/components/ui';
+import { BannerManager } from '../components/BannerManager';
 
 const TOP_TABS = [
   { id: 'content', label: 'Konten' },
   { id: 'testimonials', label: 'Testimoni & Review' },
+  { id: 'banners', label: 'Banner Utama' },
 ];
 
 const CONTENT_SUBTABS = [
@@ -24,7 +27,7 @@ const CONTENT_SUBTABS = [
 export const ContentPage: React.FC = () => {
   const [active, setActive] = useState('content');
   const [contentTab, setContentTab] = useState('faq');
-  const [testimonials, setTestimonials] = useState<Testimonial[]>(initialTestimonials);
+  const { faq, setFaq, testimonials, setTestimonials, banners, setBanners } = useAppStore();
 
   const reviewTestimonial = (id: string, status: 'approved' | 'rejected') => {
     setTestimonials((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
@@ -32,6 +35,13 @@ export const ContentPage: React.FC = () => {
 
   const togglePin = (id: string) => {
     setTestimonials((prev) => prev.map((t) => (t.id === id ? { ...t, pinned: !t.pinned } : t)));
+  };
+
+  const addFaq = () => {
+    const question = window.prompt('Pertanyaan FAQ baru:');
+    if (!question) return;
+    const answer = window.prompt('Jawaban:') || '';
+    setFaq((prev) => [...prev, { id: `faq${Date.now()}`, question, answer, category: 'Umum' }]);
   };
 
   return (
@@ -47,14 +57,14 @@ export const ContentPage: React.FC = () => {
               title="FAQ"
               description="Pertanyaan yang tampil di Pusat Bantuan portal Customer."
               action={
-                <button className="inline-flex items-center gap-1.5 bg-[#dc2626] text-white text-[12.5px] font-bold px-3.5 py-2 rounded-lg hover:bg-[#b91c1c] transition-colors cursor-pointer">
+                <button onClick={addFaq} className="inline-flex items-center gap-1.5 bg-[#dc2626] text-white text-[12.5px] font-bold px-3.5 py-2 rounded-lg hover:bg-[#b91c1c] transition-colors cursor-pointer">
                   <Plus size={13} />
                   Tambah FAQ
                 </button>
               }
             >
               <div className="space-y-2">
-                {faqItems.map((f) => (
+                {faq.map((f) => (
                   <div key={f.id} className="rounded-xl border border-[#f1f5f9] px-3.5 py-3">
                     <div className="flex items-center justify-between gap-2 mb-1">
                       <span className="text-[13px] font-semibold text-[#191c1e]">{f.question}</span>
@@ -141,6 +151,10 @@ export const ContentPage: React.FC = () => {
             </SectionCard>
           )}
         </>
+      )}
+
+      {active === 'banners' && (
+        <BannerManager banners={banners} setBanners={setBanners} />
       )}
 
       {active === 'testimonials' && (

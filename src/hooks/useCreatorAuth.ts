@@ -2,69 +2,115 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * PROTOTYPE ONLY. There is no backend yet, so this checks a single
- * hardcoded demo credential and stores the "session" in localStorage.
- * Replace with real authentication once the Event Creator API exists.
+ * PROTOTYPE ONLY — checks/creates EO accounts in the shared AppStore
+ * (client-side, localStorage-backed). Replace with real authentication
+ * once the Event Creator API exists. A seeded demo account exists in
+ * store/AppStore.tsx (seedEOAccounts) — open that file locally to find it.
  */
 
 import { useCallback, useState } from 'react';
+import { useAppStore, EOAccount } from '../store/AppStore';
 
-const SESSION_KEY = 'yourtixside_creator_session';
+const SESSION_KEY = 'yourtixside_creator_session_email';
 
-export const DEMO_CREDENTIAL = {
-  email: 'eo.demo@yourtix.internal',
-  password: 'Nt7-vQe2-kzR',
-  orgName: 'Kolektif Nada Kampus',
-  contactName: 'Sarah Amelia',
-};
-
-interface CreatorSession {
-  email: string;
+export interface EOSignupInput {
+  picName: string;
   orgName: string;
-  contactName: string;
-}
-
-function readSession(): CreatorSession | null {
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+  email: string;
+  phone: string;
+  password: string;
+  ktpFileName?: string;
+  npwpFileName?: string;
+  bankName?: string;
+  bankAccount?: string;
+  loginMethod: 'manual' | 'google';
 }
 
 export function useCreatorAuth() {
-  const [session, setSession] = useState<CreatorSession | null>(() => readSession());
+  const { eoAccounts, setEoAccounts, logActivity } = useAppStore();
+  const [sessionEmail, setSessionEmail] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(SESSION_KEY);
+    } catch {
+      return null;
+    }
+  });
   const [error, setError] = useState<string | null>(null);
 
-  const login = useCallback((email: string, password: string) => {
-    if (email.trim().toLowerCase() === DEMO_CREDENTIAL.email && password === DEMO_CREDENTIAL.password) {
-      const newSession: CreatorSession = {
-        email: DEMO_CREDENTIAL.email,
-        orgName: DEMO_CREDENTIAL.orgName,
-        contactName: DEMO_CREDENTIAL.contactName,
-      };
-      try {
-        localStorage.setItem(SESSION_KEY, JSON.stringify(newSession));
-      } catch {
-        /* ignore */
-      }
-      setSession(newSession);
-      setError(null);
-      return true;
-    }
-    setError('Email atau password salah. Gunakan akun demo yang tersedia.');
-    return false;
-  }, []);
+  const session = eoAccounts.find((e) => e.email.toLowerCase() === sessionEmail?.toLowerCase()) ?? null;
 
-  const logout = useCallback(() => {
+  const persist = (email: string | null) => {
     try {
-      localStorage.removeItem(SESSION_KEY);
+      if (email) localStorage.setItem(SESSION_KEY, email);
+      else localStorage.removeItem(SESSION_KEY);
     } catch {
       /* ignore */
     }
-    setSession(null);
+    setSessionEmail(email);
+  };
+
+  const login = useCallback(
+    (email: string, password: string) => {
+      const acc = eoAccounts.find((e) => e.email.toLowerCase() === email.trim().toLowerCase());
+      if (!acc || acc.password !== password) {
+        setError('Email atau password salah.');
+        return false;
+      }
+      if (acc.accountStatus !== 'aktif') {
+        setError(`Akun ini berstatus ${acc.accountStatus}. Hubungi Superadmin.`);
+        return false;
+      }
+      setError(null);
+      persist(acc.email);
+      return true;
+    },
+    [eoAccounts]
+  );
+
+  const signup = useCallback(
+    (input: EOSignupInput) => {
+      if (eoAccounts.some((e) => e.email.toLowerCase() === input.email.trim().toLowerCase())) {
+        setError('Email sudah terdaftar.');
+        return false;
+      }
+      const newAccount: EOAccount = {
+        id: `eo${Date.now()}`,
+        email: input.email.trim(),
+        password: input.password,
+        picName: input.picName,
+        orgName: input.orgName,
+        phone: input.phone,
+        ktpFileName: input.ktpFileName,
+        npwpFileName: input.npwpFileName,
+        bankName: input.bankName,
+        bankAccount: input.bankAccount,
+        verificationStatus: 'pending',
+        accountStatus: 'aktif',
+        loginMethod: input.loginMethod,
+        joinedAt: new Date().toISOString().slice(0, 10),
+        activeEvents: 0,
+        team: [],
+      };
+      setEoAccounts((prev) => [...prev, newAccount]);
+      logActivity(`${input.orgName} mendaftar sebagai EO baru — menunggu verifikasi`);
+      setError(null);
+      persist(newAccount.email);
+      return true;
+    },
+    [eoAccounts, setEoAccounts, logActivity]
+  );
+
+  const logout = useCallback(() => {
+    persist(null);
   }, []);
 
-  return { session, error, login, logout };
+  const updateProfile = useCallback(
+    (updates: Partial<EOAccount>) => {
+      if (!session) return;
+      setEoAccounts((prev) => prev.map((e) => (e.id === session.id ? { ...e, ...updates } : e)));
+    },
+    [session, setEoAccounts]
+  );
+
+  return { session, error, login, signup, logout, updateProfile };
 }

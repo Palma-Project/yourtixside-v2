@@ -17,13 +17,16 @@ import {
   Camera,
   Mail,
   Sparkles,
+  UserCircle,
+  LogOut,
 } from 'lucide-react';
-import { faqItems } from '../data/superadminData';
 import { momentPhotos } from '../data/creatorData';
-import { events } from '../data/events';
-import { polls } from '../data/polls';
+import { useAppStore } from '../store/AppStore';
+import { useCustomerAuth } from '../hooks/useCustomerAuth';
 import { useGoogleAuth } from '../hooks/useGoogleAuth';
 import { LiveChatWidget } from './LiveChatWidget';
+import { CustomerLogin } from './CustomerLogin';
+import { CustomerAccountPage } from './CustomerAccountPage';
 
 const GUIDES = [
   { icon: ShieldCheck, title: 'Verifikasi Tiket Asli', body: 'Setiap tiket punya QR unik yang hanya bisa discan sekali di venue.' },
@@ -36,33 +39,45 @@ function generateTicketNumber() {
   return `YTX-${digits}`;
 }
 
-const MOCK_STATUSES = ['Diproses', 'Menunggu Dokumen', 'Selesai'] as const;
-
 interface CustomerPortalProps {
   onBackHome: () => void;
+  onOpenVote: (id: string) => void;
 }
 
-export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onBackHome }) => {
+export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onBackHome, onOpenVote }) => {
+  const [view, setView] = useState<'portal' | 'login' | 'account'>('portal');
+  const { votes, complaints, setComplaints, chats, setChats, faq, logActivity } = useAppStore();
+  const auth = useCustomerAuth();
+  const { user: googleUser, renderButtonInto } = useGoogleAuth();
+  const googleBtnRef = useRef<HTMLDivElement>(null);
+
   const [faqQuery, setFaqQuery] = useState('');
   const [openFaqId, setOpenFaqId] = useState<string | null>(null);
 
   const [category, setCategory] = useState<'Refund' | 'Komplain Umum' | 'Lapor Penipuan'>('Refund');
   const [orderNumber, setOrderNumber] = useState('');
-  const [email, setEmail] = useState('');
+  const [complaintEmail, setComplaintEmail] = useState('');
   const [description, setDescription] = useState('');
   const [submittedTicket, setSubmittedTicket] = useState<string | null>(null);
 
   const [lookupTicket, setLookupTicket] = useState('');
   const [lookupResult, setLookupResult] = useState<string | null>(null);
 
-  const { user, configured, renderButtonInto } = useGoogleAuth();
-  const googleBtnRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
-    if (!user && googleBtnRef.current) renderButtonInto(googleBtnRef.current);
-  }, [user, renderButtonInto]);
+    if (!auth.session && !googleUser && googleBtnRef.current) renderButtonInto(googleBtnRef.current);
+  }, [auth.session, googleUser, renderButtonInto]);
 
-  const filteredFaq = faqItems.filter(
+  // Reconcile a Google sign-in into a customer account automatically
+  useEffect(() => {
+    if (googleUser && !auth.session) {
+      auth.continueWithGoogle(googleUser.email, googleUser.name);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [googleUser]);
+
+  const identity = auth.session ?? (googleUser ? { name: googleUser.name, email: googleUser.email } : null);
+
+  const filteredFaq = faq.filter(
     (f) =>
       !faqQuery.trim() ||
       f.question.toLowerCase().includes(faqQuery.toLowerCase()) ||
@@ -71,23 +86,90 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onBackHome }) =>
 
   const handleSubmitComplaint = (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmittedTicket(generateTicketNumber());
+    const ticket = generateTicketNumber();
+    setComplaints((prev) => [
+      {
+        id: `cp${Date.now()}`,
+        ticketNumber: ticket,
+        category,
+        reporterName: identity?.name || 'Customer',
+        reporterEmail: complaintEmail,
+        description,
+        status: 'diproses',
+        submittedAt: new Date().toISOString().slice(0, 10),
+      },
+      ...prev,
+    ]);
+    logActivity(`Komplain baru masuk dari ${complaintEmail} (${category})`);
+    setSubmittedTicket(ticket);
   };
 
   const handleLookup = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!lookupTicket.trim()) return;
-    const idx = lookupTicket.length % MOCK_STATUSES.length;
-    setLookupResult(MOCK_STATUSES[idx]);
+    const found = complaints.find((c) => c.ticketNumber.toLowerCase() === lookupTicket.trim().toLowerCase());
+    setLookupResult(
+      found
+        ? found.status === 'selesai'
+          ? 'Selesai'
+          : found.status === 'menunggu-dokumen'
+          ? 'Menunggu Dokumen'
+          : 'Diproses'
+        : 'Tidak ditemukan'
+    );
   };
 
-  const myMoments = user ? momentPhotos.filter((p) => p.submitterEmail === user.email) : [];
+  const myMoments = identity ? momentPhotos.filter((p) => p.submitterEmail === identity.email) : [];
+  const activeVotes = votes.filter((v) => (v.status ?? 'aktif') === 'aktif').slice(0, 3);
 
-  const activeEvents = events.slice(0, 3);
+  // My chat conversation (created on first message)
+  const myChat = identity ? chats.find((c) => c.customerEmail === identity.email) : null;
+
+  const sendChatMessage = (text: string) => {
+    if (!identity) return;
+    setChats((prev) => {
+      const existing = prev.find((c) => c.customerEmail === identity.email);
+      const msg = { id: `m${Date.now()}`, from: 'customer' as const, text, time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) };
+      if (existing) {
+        return prev.map((c) => (c.id === existing.id ? { ...c, unread: true, messages: [...c.messages, msg] } : c));
+      }
+      return [
+        { id: `chat${Date.now()}`, customerEmail: identity.email, customerName: identity.name, unread: true, messages: [msg] },
+        ...prev,
+      ];
+    });
+  };
+
+  if (view === 'login') {
+    return (
+      <CustomerLogin
+        login={auth.login}
+        signup={auth.signup}
+        continueWithGoogle={auth.continueWithGoogle}
+        error={auth.error}
+        onSuccess={() => setView('portal')}
+        onBackHome={() => setView('portal')}
+      />
+    );
+  }
+
+  if (view === 'account' && auth.session) {
+    return (
+      <CustomerAccountPage
+        account={auth.session}
+        votes={votes}
+        complaints={complaints}
+        onUpdate={auth.updateProfile}
+        onLogout={() => {
+          auth.logout();
+          setView('portal');
+        }}
+        onBack={() => setView('portal')}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f7f9fb]">
-      {/* Simple topbar */}
       <header className="sticky top-0 z-30 bg-white border-b border-[#e2e8f0]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-3">
           <button onClick={onBackHome} className="text-[#565e74] hover:text-[#191c1e] cursor-pointer" aria-label="Kembali">
@@ -98,6 +180,25 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onBackHome }) =>
             <span className="text-[#191c1e]">side</span>
           </span>
           <span className="text-[13px] font-semibold text-[#94a3b8] ml-1">Portal Customer</span>
+
+          <div className="ml-auto">
+            {auth.session ? (
+              <button onClick={() => setView('account')} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#191c1e] hover:text-[#dc2626] cursor-pointer">
+                <UserCircle size={18} />
+                {auth.session.name.split(' ')[0]}
+              </button>
+            ) : googleUser ? (
+              <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#191c1e]">
+                <UserCircle size={18} />
+                {googleUser.name.split(' ')[0]}
+              </span>
+            ) : (
+              <button onClick={() => setView('login')} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#dc2626] hover:underline cursor-pointer">
+                <UserCircle size={18} />
+                Masuk / Akun Saya
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -120,19 +221,11 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onBackHome }) =>
           <div className="space-y-2">
             {filteredFaq.map((f) => (
               <div key={f.id} className="bg-white rounded-xl border border-[#e2e8f0] overflow-hidden">
-                <button
-                  onClick={() => setOpenFaqId(openFaqId === f.id ? null : f.id)}
-                  className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left cursor-pointer"
-                >
+                <button onClick={() => setOpenFaqId(openFaqId === f.id ? null : f.id)} className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left cursor-pointer">
                   <span className="text-[13.5px] font-semibold text-[#191c1e]">{f.question}</span>
-                  <ChevronDown
-                    size={16}
-                    className={`text-[#94a3b8] shrink-0 transition-transform ${openFaqId === f.id ? 'rotate-180' : ''}`}
-                  />
+                  <ChevronDown size={16} className={`text-[#94a3b8] shrink-0 transition-transform ${openFaqId === f.id ? 'rotate-180' : ''}`} />
                 </button>
-                {openFaqId === f.id && (
-                  <div className="px-4 pb-4 text-[13px] text-[#565e74] leading-[20px]">{f.answer}</div>
-                )}
+                {openFaqId === f.id && <div className="px-4 pb-4 text-[13px] text-[#565e74] leading-[20px]">{f.answer}</div>}
               </div>
             ))}
           </div>
@@ -164,43 +257,19 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onBackHome }) =>
               <div className="rounded-xl bg-[#ecfdf5] border border-[#a7f3d0] p-4">
                 <p className="text-[13px] font-bold text-[#065f46]">Laporan terkirim!</p>
                 <p className="text-[12px] text-[#047857] mt-1">
-                  Nomor tiket Anda: <span className="font-mono font-bold">{submittedTicket}</span>. Simpan untuk cek status.
+                  Nomor tiket Anda: <span className="font-mono font-bold">{submittedTicket}</span>. Simpan untuk cek status — laporan ini langsung masuk ke antrian tim kami.
                 </p>
               </div>
             ) : (
               <form onSubmit={handleSubmitComplaint} className="space-y-3">
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value as typeof category)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px]"
-                >
+                <select value={category} onChange={(e) => setCategory(e.target.value as typeof category)} className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px]">
                   <option>Refund</option>
                   <option>Komplain Umum</option>
                   <option>Lapor Penipuan</option>
                 </select>
-                <input
-                  value={orderNumber}
-                  onChange={(e) => setOrderNumber(e.target.value)}
-                  placeholder="Nomor Order"
-                  required
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px]"
-                />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email Pembelian"
-                  required
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px]"
-                />
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Jelaskan masalah Anda"
-                  rows={3}
-                  required
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px] resize-none"
-                />
+                <input value={orderNumber} onChange={(e) => setOrderNumber(e.target.value)} placeholder="Nomor Order" required className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px]" />
+                <input type="email" value={complaintEmail} onChange={(e) => setComplaintEmail(e.target.value)} placeholder="Email Pembelian" required className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px]" />
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Jelaskan masalah Anda" rows={3} required className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px] resize-none" />
                 <button className="inline-flex items-center gap-2 bg-[#dc2626] text-white text-[13px] font-bold px-4 py-2.5 rounded-xl hover:bg-[#b91c1c] transition-colors cursor-pointer">
                   <Send size={14} />
                   Kirim Laporan
@@ -213,12 +282,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onBackHome }) =>
             <h2 className="text-[15px] font-bold text-[#191c1e] mb-1">Cek Status Laporan</h2>
             <p className="text-[12.5px] text-[#565e74] mb-4">Pantau progres tanpa harus tanya CS berulang.</p>
             <form onSubmit={handleLookup} className="flex items-center gap-2 mb-4">
-              <input
-                value={lookupTicket}
-                onChange={(e) => setLookupTicket(e.target.value)}
-                placeholder="cth. YTX-482910"
-                className="flex-1 px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px] font-mono"
-              />
+              <input value={lookupTicket} onChange={(e) => setLookupTicket(e.target.value)} placeholder="cth. YTX-482910" className="flex-1 px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px] font-mono" />
               <button className="w-11 h-11 rounded-xl bg-[#191c1e] text-white flex items-center justify-center hover:bg-black transition-colors cursor-pointer shrink-0">
                 <FileSearch size={16} />
               </button>
@@ -242,11 +306,11 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onBackHome }) =>
             Vote dibuat oleh Event Creator — butuh login Google, 1 email hanya bisa vote sekali per polling.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-            {polls.slice(0, 3).map((p) => (
-              <div key={p.id} className="bg-white rounded-xl border border-[#e2e8f0] p-4">
+            {activeVotes.map((p) => (
+              <button key={p.id} onClick={() => onOpenVote(p.id)} className="text-left bg-white rounded-xl border border-[#e2e8f0] p-4 hover:border-[#dc2626] hover:shadow-sm transition-all cursor-pointer">
                 <h3 className="text-[13px] font-bold text-[#191c1e] leading-snug line-clamp-2 mb-2">{p.question}</h3>
                 <p className="text-[11.5px] text-[#94a3b8]">Berakhir dalam {p.closesLabel}</p>
-              </div>
+              </button>
             ))}
           </div>
         </section>
@@ -257,25 +321,18 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onBackHome }) =>
             <Camera size={18} className="text-[#dc2626]" />
             <h2 className="text-[19px] font-bold text-[#191c1e]">Galeri Momen Saya</h2>
           </div>
-          <p className="text-[13px] text-[#565e74] mb-4">
-            Foto dari sesi Take a Moment yang tersambung ke email akun Anda.
-          </p>
+          <p className="text-[13px] text-[#565e74] mb-4">Foto dari sesi Take a Moment yang tersambung ke email akun Anda.</p>
 
-          {!user ? (
+          {!identity ? (
             <div className="bg-white rounded-2xl border border-[#e2e8f0] p-6 text-center">
               <p className="text-[13px] text-[#565e74] mb-4">Masuk dengan Google untuk melihat galeri momen Anda.</p>
               <div ref={googleBtnRef} className="flex justify-center min-h-[44px]" />
-              {!configured && (
-                <p className="text-[11px] text-[#b45309] mt-2">
-                  Login Google belum dikonfigurasi — tambahkan VITE_GOOGLE_CLIENT_ID pada .env.
-                </p>
-              )}
             </div>
           ) : myMoments.length === 0 ? (
             <div className="bg-white rounded-2xl border border-[#e2e8f0] p-6 text-center">
               <Sparkles size={22} className="text-[#dc2626] mx-auto mb-2" />
               <p className="text-[13px] text-[#565e74]">
-                Belum ada foto yang tersambung ke <span className="font-semibold">{user.email}</span>.
+                Belum ada foto yang tersambung ke <span className="font-semibold">{identity.email}</span>.
               </p>
             </div>
           ) : (
@@ -296,7 +353,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onBackHome }) =>
         </section>
       </div>
 
-      <LiveChatWidget />
+      <LiveChatWidget identityEmail={identity?.email} chat={myChat} onSend={sendChatMessage} />
     </div>
   );
 };

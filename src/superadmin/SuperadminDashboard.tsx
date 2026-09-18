@@ -18,6 +18,7 @@ import {
   Settings2,
   Users,
   SlidersHorizontal,
+  UserCog,
   LogOut,
   Menu,
   X,
@@ -29,8 +30,9 @@ import { DocSupportPage } from './pages/DocSupportPage';
 import { ContentPage } from './pages/ContentPage';
 import { OperationalPage } from './pages/OperationalPage';
 import { AdminPage } from './pages/AdminPage';
+import { AccountsManagementPage } from './pages/AccountsManagementPage';
 
-export type SuperadminSection = 'overview' | 'docsupport' | 'content' | 'operational' | 'admin';
+export type SuperadminSection = 'overview' | 'docsupport' | 'content' | 'operational' | 'admin' | 'accounts';
 
 interface NavGroup {
   label: string;
@@ -60,7 +62,10 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: 'Administrasi',
-    items: [{ id: 'admin', label: 'User & Akses / Pengaturan', icon: <Users size={17} /> }],
+    items: [
+      { id: 'admin', label: 'User & Akses / Pengaturan', icon: <Users size={17} /> },
+      { id: 'accounts', label: 'Manajemen Akun (EO & Customer)', icon: <UserCog size={17} /> },
+    ],
   },
 ];
 
@@ -95,6 +100,8 @@ export const SuperadminDashboard: React.FC<SuperadminDashboardProps> = ({
         return <OperationalPage />;
       case 'admin':
         return <AdminPage />;
+      case 'accounts':
+        return <AccountsManagementPage />;
       default:
         return null;
     }

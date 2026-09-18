@@ -21,7 +21,7 @@ import {
   Radio,
 } from 'lucide-react';
 import { Poll, Candidate } from '../data/polls';
-import { hasVoted, recordVote, getVoteDeltas } from '../lib/voteStorage';
+import { useAppStore } from '../store/AppStore';
 import { useGoogleAuth } from '../hooks/useGoogleAuth';
 import { useLanguage } from '../i18n/LanguageContext';
 
@@ -42,47 +42,52 @@ export const CandidateDetail: React.FC<CandidateDetailProps> = ({
 }) => {
   const { t, lang } = useLanguage();
   const locale = lang === 'id' ? 'id-ID' : 'en-US';
+  const { votes, setVotes, logActivity } = useAppStore();
 
   const [openProgram, setOpenProgram] = useState<number | null>(0);
   const [submitted, setSubmitted] = useState(false);
   const [rejected, setRejected] = useState<string | null>(null);
   const { user, configured, renderButtonInto } = useGoogleAuth();
 
-  const deltas = useMemo(() => getVoteDeltas(poll.id), [poll.id, submitted]);
-  const withVotes = poll.candidates.map((c) => ({ ...c, votes: c.votes + (deltas[c.id] || 0) }));
+  // Always read the live poll from the store so vote counts update in real time
+  const livePoll = votes.find((v) => v.id === poll.id) ?? poll;
+  const withVotes = livePoll.candidates;
   const total = withVotes.reduce((sum, c) => sum + c.votes, 0);
-  const current = withVotes.find((c) => c.id === candidate.id)!;
+  const current = withVotes.find((c) => c.id === candidate.id) ?? candidate;
   const percent = total > 0 ? ((current.votes / total) * 100).toFixed(1) : '0.0';
   const rank = [...withVotes].sort((a, b) => b.votes - a.votes).findIndex((c) => c.id === candidate.id) + 1;
   const others = withVotes.filter((c) => c.id !== candidate.id).slice(0, 3);
+  const votedEmails = livePoll.votedEmails ?? [];
 
   // Once signed in, check whether this account has already voted in this poll
   useEffect(() => {
     if (!user) return;
-    const existing = hasVoted(poll.id, user.email);
-    if (existing) {
-      setRejected(
-        existing.candidateIds.includes(candidate.id)
-          ? t.candidate.alreadyVotedThis
-          : t.candidate.alreadyVotedOther
-      );
+    if (votedEmails.includes(user.email)) {
+      setRejected(t.candidate.alreadyVotedThis);
     } else {
       setRejected(null);
     }
-  }, [user, poll.id, candidate.id, t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, livePoll.id]);
 
   const handleSubmit = () => {
     if (!user) return;
-    const existing = hasVoted(poll.id, user.email);
-    if (existing) {
-      setRejected(
-        existing.candidateIds.includes(candidate.id)
-          ? t.candidate.alreadyVotedThis
-          : t.candidate.alreadyVotedOther
-      );
+    if (votedEmails.includes(user.email)) {
+      setRejected(t.candidate.alreadyVotedThis);
       return;
     }
-    recordVote(poll.id, user.email, [candidate.id]);
+    setVotes((prev) =>
+      prev.map((v) =>
+        v.id !== livePoll.id
+          ? v
+          : {
+              ...v,
+              votedEmails: [...(v.votedEmails ?? []), user.email],
+              candidates: v.candidates.map((c) => (c.id === candidate.id ? { ...c, votes: c.votes + 1 } : c)),
+            }
+      )
+    );
+    logActivity(`${user.email} memberikan suara di "${livePoll.question}"`);
     setSubmitted(true);
   };
 
@@ -148,14 +153,14 @@ export const CandidateDetail: React.FC<CandidateDetailProps> = ({
               <div className="absolute bottom-4 left-4 right-4">
                 <span className="inline-flex items-center gap-1.5 bg-[#10b981] text-white text-[10px] font-bold px-2 py-1 rounded-md mb-2">
                   <CheckCircle2 size={11} />
-                  {candidate.tagline.toUpperCase()}
+                  {(candidate.tagline || t.candidate.numberPrefix + ' ' + candidate.number).toUpperCase()}
                 </span>
                 <div className="text-white text-[19px] font-extrabold tracking-tight drop-shadow leading-tight">
                   {candidate.name}
                   {candidate.partnerName && ` & ${candidate.partnerName.split(' ')[0]}`}
                 </div>
                 <div className="text-white/80 text-[12px] mt-0.5 drop-shadow">
-                  {t.candidate.candidateOf} {candidate.field} {poll.question.split(' ').pop()}
+                  {t.candidate.candidateOf} {candidate.field || livePoll.question}
                 </div>
               </div>
             </div>
@@ -166,7 +171,7 @@ export const CandidateDetail: React.FC<CandidateDetailProps> = ({
                 <div className="text-[12px] font-bold text-[#191c1e] truncate">
                   {t.candidate.verifiedBy}
                 </div>
-                <div className="text-[11px] text-[#94a3b8] truncate">{candidate.verifiedNote}</div>
+                <div className="text-[11px] text-[#94a3b8] truncate">{candidate.verifiedNote || t.candidate.verifiedBy}</div>
               </div>
               <span className="bg-[#ecfdf5] text-[#059669] text-[11px] font-bold px-2.5 py-1 rounded-md shrink-0">
                 {t.candidate.valid}
@@ -231,7 +236,7 @@ export const CandidateDetail: React.FC<CandidateDetailProps> = ({
                   <span className="bg-[#f5f3ff] text-[#5b21b6] font-semibold px-2 py-0.5 rounded-md">
                     {t.candidate.finalistPrefix} {candidate.number}
                   </span>
-                  <span className="text-[#94a3b8]">• {candidate.field}</span>
+                  {candidate.field && <span className="text-[#94a3b8]">• {candidate.field}</span>}
                 </div>
                 <h1 className="text-[28px] sm:text-[32px] font-extrabold text-[#191c1e] tracking-tight leading-tight">
                   {candidate.name}
@@ -241,7 +246,7 @@ export const CandidateDetail: React.FC<CandidateDetailProps> = ({
                     {t.candidate.partner}: {candidate.partnerName}
                   </p>
                 )}
-                <p className="text-[12px] text-[#94a3b8] mt-1">{candidate.region}</p>
+                {candidate.region && <p className="text-[12px] text-[#94a3b8] mt-1">{candidate.region}</p>}
               </div>
 
               <div className="bg-[#fef2f2] rounded-xl px-5 py-3.5 text-center shrink-0">
@@ -287,7 +292,9 @@ export const CandidateDetail: React.FC<CandidateDetailProps> = ({
             </div>
 
             {/* Demographics */}
+            {((candidate.ageStats && candidate.ageStats.length > 0) || (candidate.regionStats && candidate.regionStats.length > 0)) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-5">
+              {candidate.ageStats && candidate.ageStats.length > 0 && (
               <div className="rounded-xl border border-[#ece9f5] bg-[#fbfaff] p-3.5">
                 <div className="flex items-center justify-between mb-2.5">
                   <span className="text-[12px] font-bold text-[#191c1e]">{t.candidate.ageGroup}</span>
@@ -310,7 +317,9 @@ export const CandidateDetail: React.FC<CandidateDetailProps> = ({
                   ))}
                 </div>
               </div>
+              )}
 
+              {candidate.regionStats && candidate.regionStats.length > 0 && (
               <div className="rounded-xl border border-[#ece9f5] bg-[#fbfaff] p-3.5">
                 <div className="flex items-center justify-between mb-2.5">
                   <span className="text-[12px] font-bold text-[#191c1e]">{t.candidate.regionBase}</span>
@@ -329,10 +338,13 @@ export const CandidateDetail: React.FC<CandidateDetailProps> = ({
                   ))}
                 </ol>
               </div>
+              )}
             </div>
+            )}
           </div>
 
           {/* Vision & programs */}
+          {(candidate.vision || (candidate.programs && candidate.programs.length > 0)) && (
           <div className="bg-white rounded-2xl border border-[#ece9f5] shadow-sm p-5">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
               <h2 className="inline-flex items-center gap-2 text-[16px] font-bold text-[#191c1e]">
@@ -342,6 +354,7 @@ export const CandidateDetail: React.FC<CandidateDetailProps> = ({
               <span className="text-[11px] text-[#94a3b8]">{t.candidate.draftLabel}</span>
             </div>
 
+            {candidate.vision && (
             <div className="rounded-xl border border-[#f3d5d5] bg-[#fff8f8] p-4 mb-4">
               <div className="text-[10px] font-bold uppercase tracking-wide text-[#b3220f] mb-2">
                 {t.candidate.visionPrefix} {candidate.number}
@@ -350,7 +363,9 @@ export const CandidateDetail: React.FC<CandidateDetailProps> = ({
                 &ldquo;{candidate.vision}&rdquo;
               </p>
             </div>
+            )}
 
+            {candidate.programs && candidate.programs.length > 0 && (
             <div className="space-y-2">
               {candidate.programs.map((program, i) => (
                 <div key={i} className="rounded-xl border border-[#ece9f5] overflow-hidden">
@@ -379,7 +394,9 @@ export const CandidateDetail: React.FC<CandidateDetailProps> = ({
                 </div>
               ))}
             </div>
+            )}
           </div>
+          )}
 
           {/* ===== VOTING BOOTH ===== */}
           <div className="rounded-2xl border-2 border-[#f3d5d5] bg-[#fff8f8] p-5">

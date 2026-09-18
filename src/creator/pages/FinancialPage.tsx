@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { Calculator, HandCoins, CalendarClock, Send } from 'lucide-react';
-import { sponsorshipSubmissions, eventChangeRequests } from '../../data/creatorData';
+import { sponsorshipSubmissions as seedSponsorship, eventChangeRequests as seedChanges, SponsorshipSubmission, EventChangeRequest } from '../../data/creatorData';
 import { Tabs, SectionCard, StatusBadge } from '../components/ui';
 
 const TABS = [
@@ -19,6 +19,35 @@ export const FinancialPage: React.FC = () => {
   const [price, setPrice] = useState(150000);
   const [qty, setQty] = useState(500);
   const [feePercent, setFeePercent] = useState(8);
+  const [sponsorships, setSponsorships] = useState<SponsorshipSubmission[]>(seedSponsorship);
+  const [changes, setChanges] = useState<EventChangeRequest[]>(seedChanges);
+  const [sponsorEvent, setSponsorEvent] = useState('');
+  const [sponsorName, setSponsorName] = useState('');
+  const [sponsorType, setSponsorType] = useState('');
+  const [changeEvent, setChangeEvent] = useState('');
+  const [changeType, setChangeType] = useState('Perubahan Tanggal');
+  const [changeDetail, setChangeDetail] = useState('');
+
+  const submitSponsorship = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSponsorships((prev) => [
+      { id: `sp${Date.now()}`, reportNumber: `SPN-2026-${Math.floor(1000 + Math.random() * 9000)}`, eventName: sponsorEvent, sponsorName, cooperationType: sponsorType, submittedAt: new Date().toISOString().slice(0, 10), status: 'diajukan' },
+      ...prev,
+    ]);
+    setSponsorEvent('');
+    setSponsorName('');
+    setSponsorType('');
+  };
+
+  const submitChange = (e: React.FormEvent) => {
+    e.preventDefault();
+    setChanges((prev) => [
+      { id: `ec${Date.now()}`, eventName: changeEvent, requestedChange: `${changeType}: ${changeDetail}`, submittedAt: new Date().toISOString().slice(0, 10), status: 'diajukan' },
+      ...prev,
+    ]);
+    setChangeEvent('');
+    setChangeDetail('');
+  };
 
   const gross = price * qty;
   const fee = Math.round(gross * (feePercent / 100));
@@ -98,18 +127,18 @@ export const FinancialPage: React.FC = () => {
       {active === 'sponsorship' && (
         <>
           <SectionCard title="Ajukan Kerjasama Sponsor">
-            <form className="grid grid-cols-1 sm:grid-cols-2 gap-4" onSubmit={(e) => e.preventDefault()}>
+            <form className="grid grid-cols-1 sm:grid-cols-2 gap-4" onSubmit={submitSponsorship}>
               <div>
                 <label className="text-[12px] font-semibold text-[#191c1e] mb-1.5 block">Nama Event</label>
-                <input className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px]" placeholder="Pilih event Anda" />
+                <input value={sponsorEvent} onChange={(e) => setSponsorEvent(e.target.value)} required className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px]" placeholder="Pilih event Anda" />
               </div>
               <div>
                 <label className="text-[12px] font-semibold text-[#191c1e] mb-1.5 block">Nama Calon Sponsor</label>
-                <input className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px]" placeholder="cth. Kabut Records" />
+                <input value={sponsorName} onChange={(e) => setSponsorName(e.target.value)} required className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px]" placeholder="cth. Kabut Records" />
               </div>
               <div className="sm:col-span-2">
                 <label className="text-[12px] font-semibold text-[#191c1e] mb-1.5 block">Bentuk Kerjasama</label>
-                <textarea rows={3} className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px] resize-none" placeholder="Jelaskan bentuk kerjasama yang diajukan" />
+                <textarea value={sponsorType} onChange={(e) => setSponsorType(e.target.value)} required rows={3} className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px] resize-none" placeholder="Jelaskan bentuk kerjasama yang diajukan" />
               </div>
               <div className="sm:col-span-2">
                 <button className="inline-flex items-center gap-2 bg-[#dc2626] text-white text-[13px] font-bold px-4 py-2.5 rounded-xl hover:bg-[#b91c1c] transition-colors cursor-pointer">
@@ -122,7 +151,7 @@ export const FinancialPage: React.FC = () => {
 
           <SectionCard title="Riwayat Pengajuan Sponsorship">
             <div className="space-y-2">
-              {sponsorshipSubmissions.map((s) => (
+              {sponsorships.map((s) => (
                 <div key={s.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-[#f1f5f9] px-3.5 py-3">
                   <span className="text-[11px] font-mono text-[#94a3b8] shrink-0">{s.reportNumber}</span>
                   <div className="min-w-0 flex-1">
@@ -142,14 +171,14 @@ export const FinancialPage: React.FC = () => {
       {active === 'change' && (
         <>
           <SectionCard title="Form Perubahan Data Event" description="Request perubahan tanggal atau venue perlu approval Superadmin.">
-            <form className="grid grid-cols-1 sm:grid-cols-2 gap-4" onSubmit={(e) => e.preventDefault()}>
+            <form className="grid grid-cols-1 sm:grid-cols-2 gap-4" onSubmit={submitChange}>
               <div>
                 <label className="text-[12px] font-semibold text-[#191c1e] mb-1.5 block">Pilih Event</label>
-                <input className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px]" placeholder="cth. Jazz Under the Stars" />
+                <input value={changeEvent} onChange={(e) => setChangeEvent(e.target.value)} required className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px]" placeholder="cth. Jazz Under the Stars" />
               </div>
               <div>
                 <label className="text-[12px] font-semibold text-[#191c1e] mb-1.5 block">Jenis Perubahan</label>
-                <select className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px]">
+                <select value={changeType} onChange={(e) => setChangeType(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px]">
                   <option>Perubahan Tanggal</option>
                   <option>Perubahan Venue</option>
                   <option>Keduanya</option>
@@ -157,7 +186,7 @@ export const FinancialPage: React.FC = () => {
               </div>
               <div className="sm:col-span-2">
                 <label className="text-[12px] font-semibold text-[#191c1e] mb-1.5 block">Jelaskan Perubahan yang Diminta</label>
-                <textarea rows={3} className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px] resize-none" placeholder="Jelaskan alasan dan detail perubahan" />
+                <textarea value={changeDetail} onChange={(e) => setChangeDetail(e.target.value)} required rows={3} className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px] resize-none" placeholder="Jelaskan alasan dan detail perubahan" />
               </div>
               <div className="sm:col-span-2">
                 <button className="inline-flex items-center gap-2 bg-[#dc2626] text-white text-[13px] font-bold px-4 py-2.5 rounded-xl hover:bg-[#b91c1c] transition-colors cursor-pointer">
@@ -170,7 +199,7 @@ export const FinancialPage: React.FC = () => {
 
           <SectionCard title="Riwayat Pengajuan Perubahan">
             <div className="space-y-2">
-              {eventChangeRequests.map((r) => (
+              {changes.map((r) => (
                 <div key={r.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-[#f1f5f9] px-3.5 py-3">
                   <span className="w-9 h-9 rounded-lg bg-[#fef2f2] text-[#dc2626] flex items-center justify-center shrink-0">
                     <CalendarClock size={15} />

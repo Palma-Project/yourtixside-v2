@@ -5,26 +5,25 @@
 
 import React, { useState } from 'react';
 import { MessageCircle, X, Send } from 'lucide-react';
+import { SharedChat } from '../store/AppStore';
 
-const AUTO_REPLY =
-  'Terima kasih sudah menghubungi YourtixSide! Tim kami akan membalas secepatnya. Sambil menunggu, cek dulu FAQ di atas — mungkin jawabannya sudah ada di sana.';
+interface LiveChatWidgetProps {
+  identityEmail?: string;
+  chat?: SharedChat | null;
+  onSend: (text: string) => void;
+}
 
-export const LiveChatWidget: React.FC = () => {
+export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ chat, onSend }) => {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<{ id: number; from: 'me' | 'bot'; text: string }[]>([
-    { id: 0, from: 'bot', text: 'Halo! Ada yang bisa kami bantu?' },
-  ]);
   const [input, setInput] = useState('');
 
   const send = () => {
     if (!input.trim()) return;
-    const id = messages.length;
-    setMessages((prev) => [...prev, { id, from: 'me', text: input }]);
+    onSend(input);
     setInput('');
-    setTimeout(() => {
-      setMessages((prev) => [...prev, { id: id + 1, from: 'bot', text: AUTO_REPLY }]);
-    }, 700);
   };
+
+  const messages = chat?.messages ?? [];
 
   return (
     <div className="fixed bottom-5 right-5 z-40">
@@ -37,13 +36,16 @@ export const LiveChatWidget: React.FC = () => {
             </button>
           </div>
           <div className="flex-1 overflow-y-auto p-3.5 space-y-2.5">
+            {messages.length === 0 && (
+              <div className="flex justify-start">
+                <div className="max-w-[80%] px-3.5 py-2 rounded-2xl text-[12.5px] leading-[18px] bg-[#f1f5f9] text-[#191c1e]">
+                  Halo! Ada yang bisa kami bantu?
+                </div>
+              </div>
+            )}
             {messages.map((m) => (
-              <div key={m.id} className={`flex ${m.from === 'me' ? 'justify-end' : 'justify-start'}`}>
-                <div
-                  className={`max-w-[80%] px-3.5 py-2 rounded-2xl text-[12.5px] leading-[18px] ${
-                    m.from === 'me' ? 'bg-[#dc2626] text-white' : 'bg-[#f1f5f9] text-[#191c1e]'
-                  }`}
-                >
+              <div key={m.id} className={`flex ${m.from === 'agent' ? 'justify-start' : 'justify-end'}`}>
+                <div className={`max-w-[80%] px-3.5 py-2 rounded-2xl text-[12.5px] leading-[18px] ${m.from === 'customer' ? 'bg-[#dc2626] text-white' : 'bg-[#f1f5f9] text-[#191c1e]'}`}>
                   {m.text}
                 </div>
               </div>
@@ -57,10 +59,7 @@ export const LiveChatWidget: React.FC = () => {
               placeholder="Tulis pesan..."
               className="flex-1 px-3 py-2 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[12.5px]"
             />
-            <button
-              onClick={send}
-              className="w-9 h-9 rounded-xl bg-[#dc2626] text-white flex items-center justify-center hover:bg-[#b91c1c] transition-colors cursor-pointer shrink-0"
-            >
+            <button onClick={send} className="w-9 h-9 rounded-xl bg-[#dc2626] text-white flex items-center justify-center hover:bg-[#b91c1c] transition-colors cursor-pointer shrink-0">
               <Send size={15} />
             </button>
           </div>

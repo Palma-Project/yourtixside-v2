@@ -29,24 +29,24 @@ export interface Candidate {
   name: string;
   partnerName?: string;
   photo: string;
-  tagline: string;
+  tagline?: string;
   badge?: string;
-  category: string;
-  region: string;
-  field: string;
+  category?: string;
+  region?: string;
+  field?: string;
   score?: string;
   rankLabel?: string;
   summary: string;
-  vision: string;
-  programs: ProgramItem[];
+  vision?: string;
+  programs?: ProgramItem[];
   videoTitle?: string;
   videoDuration?: string;
   videoThumb?: string;
   videoCaption?: string;
-  verified: boolean;
-  verifiedNote: string;
-  ageStats: AgeStat[];
-  regionStats: RegionStat[];
+  verified?: boolean;
+  verifiedNote?: string;
+  ageStats?: AgeStat[];
+  regionStats?: RegionStat[];
   trendLabel?: string;
   votes: number;
 }
@@ -69,6 +69,12 @@ export interface TickerItem {
 export interface Poll {
   id: string;
   eventId?: string;
+  /* Cross-portal connection fields — which EO owns this vote, its
+     draf/aktif/selesai lifecycle, and who has already cast a vote here. */
+  eoId?: string;
+  eoName?: string;
+  status?: 'draf' | 'aktif' | 'selesai';
+  votedEmails?: string[];
 
   /* Landing card */
   coverImage: string;
@@ -106,6 +112,10 @@ export interface Poll {
 export const polls: Poll[] = [
   {
     id: 'youth-ambassador-2024',
+    eoId: 'eo-seed-3',
+    eoName: 'Kemenparekraf Hub',
+    status: 'aktif',
+    votedEmails: [],
     coverImage: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&q=80',
     categoryLabel: 'Award & Pageant',
     organizer: 'Kemenparekraf Hub',
@@ -469,6 +479,10 @@ export const polls: Poll[] = [
 
   {
     id: 'digital-creator-awards',
+    eoId: 'eo-seed-4',
+    eoName: 'Youth Creator Hub ID',
+    status: 'aktif',
+    votedEmails: [],
     coverImage: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&q=80',
     categoryLabel: 'Creator & Media',
     organizer: 'Youth Creator Hub ID',
@@ -680,6 +694,10 @@ export const polls: Poll[] = [
 
   {
     id: 'campus-music-fest',
+    eoId: 'eo-seed-1',
+    eoName: 'Kolektif Nada Kampus',
+    status: 'aktif',
+    votedEmails: [],
     eventId: 'summer-sound-fest',
     coverImage: 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=1200&q=80',
     categoryLabel: 'Music & Arts',

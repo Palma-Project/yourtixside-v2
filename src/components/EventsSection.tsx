@@ -4,9 +4,9 @@
  */
 
 import React, { useMemo } from 'react';
-import { events } from '../data/events';
 import { EventCard } from './EventCard';
 import { useLanguage } from '../i18n/LanguageContext';
+import { useAppStore } from '../store/AppStore';
 
 interface EventsSectionProps {
   searchQuery: string;
@@ -15,6 +15,7 @@ interface EventsSectionProps {
 
 export const EventsSection: React.FC<EventsSectionProps> = ({ searchQuery, onOpenEvent }) => {
   const { t } = useLanguage();
+  const { events } = useAppStore();
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -22,10 +23,10 @@ export const EventsSection: React.FC<EventsSectionProps> = ({ searchQuery, onOpe
     return events.filter((e) =>
       [e.title, e.venue, e.city, e.category].some((field) => field.toLowerCase().includes(q))
     );
-  }, [searchQuery]);
+  }, [searchQuery, events]);
 
   return (
-    <section id="events" className="py-16 sm:py-20 border-b border-[#e2e8f0]">
+    <section id="events" className="pt-8 sm:pt-10 pb-16 sm:pb-20 border-b border-[#e2e8f0]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="max-w-2xl mb-10">
           <span className="text-[12px] font-bold uppercase tracking-wider text-[#dc2626]">

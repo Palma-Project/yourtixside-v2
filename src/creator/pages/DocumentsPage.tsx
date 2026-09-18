@@ -5,7 +5,8 @@
 
 import React, { useState } from 'react';
 import { FileSignature, Download, CheckCircle2, Eraser, X, BookOpen, UserPlus, Clock } from 'lucide-react';
-import { legalDocuments, LegalDocument } from '../../data/creatorData';
+import { useAppStore, SharedDocument } from '../../store/AppStore';
+import { EOAccount } from '../../store/AppStore';
 import { Tabs, StatusBadge, SectionCard, EmptyState } from '../components/ui';
 
 const TABS = [
@@ -22,7 +23,7 @@ const TUTORIAL_STEPS = [
   { title: 'Tanda Tangan Digital', body: 'Bubuhkan tanda tangan lewat kanvas digital — dokumen langsung masuk antrian approval.' },
 ];
 
-const SignatureModal: React.FC<{ doc: LegalDocument; onClose: () => void; onSign: () => void }> = ({
+const SignatureModal: React.FC<{ doc: SharedDocument; onClose: () => void; onSign: () => void }> = ({
   doc,
   onClose,
   onSign,
@@ -83,10 +84,16 @@ const SignatureModal: React.FC<{ doc: LegalDocument; onClose: () => void; onSign
   );
 };
 
-export const DocumentsPage: React.FC = () => {
+interface DocumentsPageProps {
+  account: EOAccount;
+}
+
+export const DocumentsPage: React.FC<DocumentsPageProps> = ({ account }) => {
   const [active, setActive] = useState('signature');
-  const [docs, setDocs] = useState<LegalDocument[]>(legalDocuments);
-  const [signingDoc, setSigningDoc] = useState<LegalDocument | null>(null);
+  const { documents, setDocuments, logActivity } = useAppStore();
+  const docs = documents.filter((d) => d.eoId === account.id);
+  const setDocs = setDocuments;
+  const [signingDoc, setSigningDoc] = useState<SharedDocument | null>(null);
 
   const handleSign = () => {
     if (!signingDoc) return;
@@ -97,6 +104,7 @@ export const DocumentsPage: React.FC = () => {
           : d
       )
     );
+    logActivity(`${account.orgName} menandatangani dokumen "${signingDoc.name}"`);
     setSigningDoc(null);
   };
 

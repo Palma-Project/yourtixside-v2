@@ -15,6 +15,10 @@ import {
   Menu,
   X,
   ExternalLink,
+  UserCircle,
+  AlertTriangle,
+  CalendarRange,
+  Link2,
 } from 'lucide-react';
 import { DocumentsPage } from './pages/DocumentsPage';
 import { OperationalPage } from './pages/OperationalPage';
@@ -22,8 +26,12 @@ import { FinancialPage } from './pages/FinancialPage';
 import { VotingPage } from './pages/VotingPage';
 import { MomentsPage } from './pages/MomentsPage';
 import { FormsPage } from './pages/FormsPage';
+import { CreatorAccountPage } from './pages/CreatorAccountPage';
+import { EventsPage } from './pages/EventsPage';
+import { MinisitePage } from './pages/MinisitePage';
+import { EOAccount } from '../store/AppStore';
 
-export type CreatorSection = 'documents' | 'operational' | 'financial' | 'voting' | 'moments' | 'forms';
+export type CreatorSection = 'events' | 'documents' | 'operational' | 'financial' | 'voting' | 'moments' | 'forms' | 'minisite' | 'account';
 
 interface NavItem {
   id: CreatorSection;
@@ -32,46 +40,57 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
+  { id: 'events', label: 'Event Saya', icon: <CalendarRange size={17} /> },
   { id: 'documents', label: 'Dokumen & Legal', icon: <FileSignature size={17} /> },
   { id: 'operational', label: 'Persiapan & Operasional', icon: <CalendarDays size={17} /> },
   { id: 'financial', label: 'Finansial & Kerjasama', icon: <Wallet size={17} /> },
   { id: 'voting', label: 'Voting & Polling', icon: <Vote size={17} /> },
   { id: 'moments', label: 'Take a Moment', icon: <Camera size={17} /> },
   { id: 'forms', label: 'YourTix Form', icon: <ClipboardList size={17} /> },
+  { id: 'minisite', label: 'Landing/Minisite', icon: <Link2 size={17} /> },
+  { id: 'account', label: 'Akun Saya', icon: <UserCircle size={17} /> },
 ];
 
 interface CreatorDashboardProps {
-  orgName: string;
-  contactName: string;
+  account: EOAccount;
+  onUpdateAccount: (updates: Partial<EOAccount>) => void;
   onLogout: () => void;
   onBackHome: () => void;
 }
 
 export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
-  orgName,
-  contactName,
+  account,
+  onUpdateAccount,
   onLogout,
   onBackHome,
 }) => {
   const [section, setSection] = useState<CreatorSection>('documents');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
+  const orgName = account.orgName;
+  const contactName = account.picName;
   const activeLabel = NAV_ITEMS.find((n) => n.id === section)?.label ?? '';
 
   const renderSection = () => {
     switch (section) {
+      case 'events':
+        return <EventsPage account={account} />;
       case 'documents':
-        return <DocumentsPage />;
+        return <DocumentsPage account={account} />;
       case 'operational':
         return <OperationalPage />;
       case 'financial':
         return <FinancialPage />;
       case 'voting':
-        return <VotingPage />;
+        return <VotingPage account={account} />;
       case 'moments':
         return <MomentsPage />;
       case 'forms':
         return <FormsPage />;
+      case 'minisite':
+        return <MinisitePage account={account} />;
+      case 'account':
+        return <CreatorAccountPage account={account} onUpdate={onUpdateAccount} />;
       default:
         return null;
     }
@@ -197,7 +216,17 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
           </div>
         </header>
 
-        <main className="flex-1 p-4 sm:p-6 max-w-6xl w-full mx-auto">{renderSection()}</main>
+        <main className="flex-1 p-4 sm:p-6 max-w-6xl w-full mx-auto">
+          {account.verificationStatus === 'pending' && (
+            <div className="mb-5 rounded-xl bg-[#fffbeb] border border-[#fde68a] px-4 py-3 flex items-center gap-2.5">
+              <AlertTriangle size={16} className="text-[#b45309] shrink-0" />
+              <p className="text-[12.5px] text-[#92400e]">
+                Akun Anda berstatus <span className="font-bold">Menunggu Verifikasi</span> — Superadmin sedang meninjau dokumen Anda di Portal EO.
+              </p>
+            </div>
+          )}
+          {renderSection()}
+        </main>
       </div>
     </div>
   );
