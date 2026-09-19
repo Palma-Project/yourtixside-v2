@@ -16,9 +16,9 @@ export const TestimonialsSection: React.FC = () => {
   if (approved.length === 0) return null;
 
   return (
-    <section className="py-16 md:py-20 bg-[#f7f9fb] border-b border-[#e2e8f0]">
+    <section className="py-10 sm:py-12 bg-[#f7f9fb] border-b border-[#e2e8f0]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="text-center max-w-3xl mx-auto mb-14 space-y-3">
+        <div className="text-center max-w-3xl mx-auto mb-8 space-y-3">
           <div className="text-[11px] font-bold uppercase tracking-wider text-[#dc2626]">TESTIMONIALS</div>
           <h2 className="text-[26px] sm:text-[32px] font-bold text-[#191c1e] tracking-tight">
             Dipercaya oleh Event Creator & Customer

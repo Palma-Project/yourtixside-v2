@@ -55,7 +55,7 @@ export const CustomerLogin: React.FC<CustomerLoginProps> = ({ login, signup, con
           Kembali ke Beranda
         </button>
 
-        <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-7">
+        <div className="modal-3d-in bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-7">
           <span className="text-[21px] font-bold tracking-tight">
             <span className="text-[#dc2626]">yourtix</span>
             <span className="text-[#191c1e]">side</span>

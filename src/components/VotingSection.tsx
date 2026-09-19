@@ -18,9 +18,9 @@ export const VotingSection: React.FC<VotingSectionProps> = ({ onOpenPoll }) => {
   const activePolls = votes.filter((v) => (v.status ?? 'aktif') === 'aktif');
 
   return (
-    <section id="voting" className="py-16 sm:py-20 bg-[#f7f9fb] border-b border-[#e2e8f0]">
+    <section id="voting" className="py-10 sm:py-12 bg-[#f7f9fb] border-b border-[#e2e8f0]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="max-w-2xl mb-10">
+        <div className="max-w-2xl mb-6">
           <span className="text-[12px] font-bold uppercase tracking-wider text-[#dc2626]">
             {t.voting.eyebrow}
           </span>

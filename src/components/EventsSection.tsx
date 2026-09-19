@@ -26,9 +26,9 @@ export const EventsSection: React.FC<EventsSectionProps> = ({ searchQuery, onOpe
   }, [searchQuery, events]);
 
   return (
-    <section id="events" className="pt-8 sm:pt-10 pb-16 sm:pb-20 border-b border-[#e2e8f0]">
+    <section id="events" className="pt-6 sm:pt-8 pb-10 sm:pb-12 border-b border-[#e2e8f0]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="max-w-2xl mb-10">
+        <div className="max-w-2xl mb-6">
           <span className="text-[12px] font-bold uppercase tracking-wider text-[#dc2626]">
             {t.events.eyebrow}
           </span>

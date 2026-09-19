@@ -127,6 +127,15 @@ export const Navbar: React.FC<NavbarProps> = ({
           {showSuggestions && <SuggestionList />}
         </div>
 
+        <a
+          href="https://yourtix.co.id"
+          target="_blank"
+          rel="noreferrer"
+          className="hidden md:inline-flex items-center text-[12px] font-semibold text-[#94a3b8] hover:text-[#dc2626] transition-colors whitespace-nowrap shrink-0"
+        >
+          By Yourtix.co.id
+        </a>
+
         <div className="flex items-center gap-2 sm:gap-3 ml-auto">
           <button
             onClick={() => setMobileSearchOpen((v) => !v)}

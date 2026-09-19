@@ -189,50 +189,22 @@ export const Footer: React.FC<FooterProps> = ({
             </div>
             <ul className="space-y-2.5 text-[13px] text-[#565e74]">
               <li>
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    alert('Kebijakan Privasi yourtixside: Seluruh data tiket dan pengunjung dienkripsi dengan standar AES-256.');
-                  }}
-                  className="hover:text-[#dc2626] transition-colors text-left"
-                >
+                <a href="/legal/privacy" className="hover:text-[#dc2626] transition-colors text-left">
                   Kebijakan Privasi
                 </a>
               </li>
               <li>
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    alert('Syarat & Ketentuan yourtixside: Layanan operasional mematuhi SLA 99.98% ketersediaan turnstile.');
-                  }}
-                  className="hover:text-[#dc2626] transition-colors text-left"
-                >
+                <a href="/legal/terms" className="hover:text-[#dc2626] transition-colors text-left">
                   Syarat &amp; Ketentuan
                 </a>
               </li>
               <li>
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    alert('Keamanan Data & Kepatuhan: Audit berkala dan enkripsi token voting anti-duplikasi.');
-                  }}
-                  className="hover:text-[#dc2626] transition-colors text-left"
-                >
+                <a href="/legal/security" className="hover:text-[#dc2626] transition-colors text-left">
                   Keamanan Data
                 </a>
               </li>
               <li>
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    alert('Kepatuhan Acara: Sesuai regulasi crowd safety & tiket legal.');
-                  }}
-                  className="hover:text-[#dc2626] transition-colors text-left"
-                >
+                <a href="/legal/compliance" className="hover:text-[#dc2626] transition-colors text-left">
                   Kepatuhan Acara
                 </a>
               </li>

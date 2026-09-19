@@ -33,6 +33,7 @@ import { SuperadminLogin } from './superadmin/SuperadminLogin';
 import { SuperadminDashboard } from './superadmin/SuperadminDashboard';
 import { CustomerPortal } from './customer/CustomerPortal';
 import { MinisiteView } from './customer/MinisiteView';
+import { LegalPage, LegalPageId } from './components/LegalPage';
 
 function getEventIdFromPath(): string | null {
   const match = window.location.pathname.match(/^\/events\/([^/]+)/);
@@ -64,6 +65,12 @@ function isCustomerPath(): boolean {
 function getMinisiteSlugFromPath(): string | null {
   const match = window.location.pathname.match(/^\/m\/([^/]+)/);
   return match ? decodeURIComponent(match[1]) : null;
+}
+
+function getLegalPageFromPath(): LegalPageId | null {
+  const match = window.location.pathname.match(/^\/legal\/([^/]+)/);
+  const id = match ? match[1] : null;
+  return id === 'privacy' || id === 'terms' || id === 'security' || id === 'compliance' ? id : null;
 }
 
 export default function App() {
@@ -240,6 +247,7 @@ export default function App() {
   const { minisites, banners } = useAppStore();
   const minisiteSlug = getMinisiteSlugFromPath();
   const activeMinisite = minisiteSlug ? minisites.find((m) => m.slug === minisiteSlug) ?? null : null;
+  const activeLegalPage = getLegalPageFromPath();
   const activePoll = pollId ? votes.find((v) => v.id === pollId) ?? null : null;
   const activeCandidate =
     activePoll && candidateId ? activePoll.candidates.find((c) => c.id === candidateId) ?? null : null;
@@ -296,6 +304,18 @@ export default function App() {
 
   if (activeMinisite) {
     return <MinisiteView site={activeMinisite} />;
+  }
+
+  if (activeLegalPage) {
+    return (
+      <LegalPage
+        page={activeLegalPage}
+        onBack={() => {
+          window.history.pushState({}, '', '/');
+          window.location.reload();
+        }}
+      />
+    );
   }
 
   return (
@@ -379,6 +399,7 @@ export default function App() {
           onChoose={(role) => {
             setAuthIntent(null);
             if (role === 'creator') {
+              creatorAuth.logout();
               setCreatorAuthMode('signup');
               openCreatorPortal();
             } else {

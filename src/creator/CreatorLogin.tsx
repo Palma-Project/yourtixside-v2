@@ -78,7 +78,7 @@ export const CreatorLogin: React.FC<CreatorLoginProps> = ({ login, signup, error
   if (submittedSignup) {
     return (
       <div className="min-h-screen bg-[#f7f9fb] flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-7 text-center">
+        <div className="w-full max-w-md modal-3d-in bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-7 text-center">
           <CheckCircle2 size={40} className="text-[#059669] mx-auto mb-3" />
           <h1 className="text-[18px] font-extrabold text-[#191c1e]">Pendaftaran Terkirim</h1>
           <p className="text-[13px] text-[#565e74] mt-2 mb-5">
@@ -108,7 +108,7 @@ export const CreatorLogin: React.FC<CreatorLoginProps> = ({ login, signup, error
           Kembali ke Beranda
         </button>
 
-        <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-7">
+        <div className="modal-3d-in bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-7">
           <span className="text-[21px] font-bold tracking-tight">
             <span className="text-[#dc2626]">yourtix</span>
             <span className="text-[#191c1e]">side</span>
