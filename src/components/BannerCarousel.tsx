@@ -70,8 +70,10 @@ export const BannerCarousel: React.FC<BannerCarouselProps> = ({ banners, onNavig
                 playsInline
                 className="w-full h-full object-cover"
               />
-            ) : (
+            ) : banner.imageUrl ? (
               <img src={banner.imageUrl} alt={banner.title} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-[#dc2626] to-[#7f1d1d]" />
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-black/20" />
             <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-7 sm:right-7">

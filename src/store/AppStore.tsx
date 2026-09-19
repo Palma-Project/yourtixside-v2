@@ -270,12 +270,19 @@ const seedFaq: FAQItem[] = [
 
 const seedBanners: Banner[] = [
   {
+    id: 'ban-test',
+    title: 'TEST BANNER — Carousel Berfungsi ✅',
+    subtitle: 'Kalau kamu lihat ini, komponen BannerCarousel jalan normal. Cek banner berikutnya untuk versi bergambar.',
+    link: '',
+    order: 0,
+  },
+  {
     id: 'ban1',
     imageUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1600&q=80',
     title: 'Semua Operasional Event, Satu Tempat',
     subtitle: 'Event Creator kelola event, Customer dapat bantuan cepat, Operasional tetap lancar.',
     link: '',
-    order: 0,
+    order: 1,
   },
   {
     id: 'ban2',
@@ -283,7 +290,7 @@ const seedBanners: Banner[] = [
     title: 'Summer Sound Fest 2026',
     subtitle: 'Vote penampil favoritmu sekarang.',
     link: '/vote/v-headliner',
-    order: 1,
+    order: 2,
   },
 ];
 
@@ -377,7 +384,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [customerAccounts, setCustomerAccounts] = usePersistedState('ytx_store_customer_accounts', seedCustomerAccounts);
   const [testimonials, setTestimonials] = usePersistedState('ytx_store_testimonials', seedTestimonials);
   const [faq, setFaq] = usePersistedState('ytx_store_faq', seedFaq);
-  const [banners, setBanners] = usePersistedState('ytx_store_banners', seedBanners);
+  const [banners, setBanners] = usePersistedState('ytx_store_banners_v2', seedBanners);
   const [systemStatus, setSystemStatus] = usePersistedState<SystemStatus>('ytx_store_system_status', {
     status: 'normal',
     message: '',
