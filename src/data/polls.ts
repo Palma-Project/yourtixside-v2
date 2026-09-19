@@ -43,6 +43,7 @@ export interface Candidate {
   videoDuration?: string;
   videoThumb?: string;
   videoCaption?: string;
+  videoUrl?: string; // YouTube link, embedded directly when present
   verified?: boolean;
   verifiedNote?: string;
   ageStats?: AgeStat[];

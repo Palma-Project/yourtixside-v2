@@ -23,6 +23,7 @@ import {
 import { Poll, Candidate } from '../data/polls';
 import { useAppStore } from '../store/AppStore';
 import { useGoogleAuth } from '../hooks/useGoogleAuth';
+import { getYouTubeId } from '../lib/fileToDataUrl';
 import { useLanguage } from '../i18n/LanguageContext';
 
 interface CandidateDetailProps {
@@ -195,33 +196,48 @@ export const CandidateDetail: React.FC<CandidateDetailProps> = ({
           </div>
 
           {/* Video card */}
-          {candidate.videoThumb && (
+          {(candidate.videoUrl || candidate.videoThumb) && (
             <div className="bg-white rounded-2xl border border-[#ece9f5] shadow-sm p-4">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-[13px] font-bold text-[#191c1e]">{t.candidate.campaignVideo}</span>
-                <span className="text-[11px] font-semibold text-[#dc2626]">
-                  {candidate.videoDuration}
-                </span>
+                {candidate.videoDuration && (
+                  <span className="text-[11px] font-semibold text-[#dc2626]">{candidate.videoDuration}</span>
+                )}
               </div>
-              <div className="relative rounded-xl overflow-hidden aspect-video bg-[#191c1e] group cursor-pointer">
-                <img
-                  src={candidate.videoThumb}
-                  alt={candidate.videoTitle}
-                  className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
-                />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="w-12 h-12 rounded-full bg-[#dc2626] text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                    <Play size={20} fill="currentColor" />
+
+              {candidate.videoUrl && getYouTubeId(candidate.videoUrl) ? (
+                <div className="relative rounded-xl overflow-hidden aspect-video bg-[#191c1e]">
+                  <iframe
+                    src={`https://www.youtube.com/embed/${getYouTubeId(candidate.videoUrl)}`}
+                    title={candidate.videoTitle || `Video ${candidate.name}`}
+                    className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              ) : (
+                <div className="relative rounded-xl overflow-hidden aspect-video bg-[#191c1e] group cursor-pointer">
+                  <img
+                    src={candidate.videoThumb}
+                    alt={candidate.videoTitle}
+                    className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="w-12 h-12 rounded-full bg-[#dc2626] text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                      <Play size={20} fill="currentColor" />
+                    </span>
+                  </div>
+                  <span className="absolute bottom-2.5 left-3 text-white text-[11px] font-semibold drop-shadow">
+                    &ldquo;{candidate.videoTitle}&rdquo;
+                  </span>
+                  <span className="absolute bottom-2.5 right-3 text-white/80 text-[10px] font-semibold drop-shadow">
+                    HD 1080P
                   </span>
                 </div>
-                <span className="absolute bottom-2.5 left-3 text-white text-[11px] font-semibold drop-shadow">
-                  &ldquo;{candidate.videoTitle}&rdquo;
-                </span>
-                <span className="absolute bottom-2.5 right-3 text-white/80 text-[10px] font-semibold drop-shadow">
-                  HD 1080P
-                </span>
-              </div>
-              <p className="text-[12px] leading-[19px] text-[#565e74] mt-3">{candidate.videoCaption}</p>
+              )}
+              {candidate.videoCaption && (
+                <p className="text-[12px] leading-[19px] text-[#565e74] mt-3">{candidate.videoCaption}</p>
+              )}
             </div>
           )}
         </div>

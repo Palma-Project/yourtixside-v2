@@ -4,7 +4,8 @@
  */
 
 import React, { useState } from 'react';
-import { Plus, Trash2, Pencil, X, CalendarPlus } from 'lucide-react';
+import { Plus, Trash2, Pencil, X, CalendarPlus, Upload } from 'lucide-react';
+import { readAsDataUrl } from '../../lib/fileToDataUrl';
 import { useAppStore } from '../../store/AppStore';
 import { EventItem } from '../../data/events';
 import { EOAccount } from '../../store/AppStore';
@@ -145,7 +146,25 @@ export const EventsPage: React.FC<EventsPageProps> = ({ account }) => {
                 <input type="date" value={form.date} onChange={(e) => set('date', e.target.value)} required className="px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px]" />
                 <input type="time" value={form.time} onChange={(e) => set('time', e.target.value)} required className="px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px]" />
               </div>
-              <input value={form.image} onChange={(e) => set('image', e.target.value)} placeholder="URL Gambar Cover" className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px]" />
+              <label className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-dashed border-[#e2e8f0] cursor-pointer hover:border-[#dc2626] transition-colors w-fit">
+                {form.image ? (
+                  <img src={form.image} alt="Cover" className="w-12 h-12 rounded-lg object-cover" />
+                ) : (
+                  <span className="w-12 h-12 rounded-lg bg-[#f1f5f9] flex items-center justify-center text-[#94a3b8]">
+                    <Upload size={16} />
+                  </span>
+                )}
+                <span className="text-[12.5px] text-[#565e74]">{form.image ? 'Ganti gambar' : 'Upload gambar cover'}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) set('image', await readAsDataUrl(file));
+                  }}
+                />
+              </label>
               <textarea value={form.description} onChange={(e) => set('description', e.target.value)} placeholder="Deskripsi event" rows={3} className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px] resize-none" />
               <button type="submit" className="w-full bg-[#dc2626] text-white text-[13.5px] font-bold py-2.5 rounded-xl hover:bg-[#b91c1c] transition-colors cursor-pointer">
                 {editingId ? 'Simpan Perubahan' : 'Publish Event'}

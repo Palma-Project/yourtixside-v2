@@ -4,10 +4,23 @@
  */
 
 import React, { useState } from 'react';
-import { Plus, Trash2, QrCode, Link2, BarChart3, Users, Vote as VoteIcon, X } from 'lucide-react';
+import {
+  Plus,
+  Trash2,
+  QrCode,
+  Link2,
+  BarChart3,
+  Users,
+  Vote as VoteIcon,
+  X,
+  Upload,
+  Youtube,
+  ChevronDown,
+} from 'lucide-react';
 import { useAppStore } from '../../store/AppStore';
-import { Poll, Candidate, SelectionType } from '../../data/polls';
+import { Poll, Candidate, SelectionType, ProgramItem } from '../../data/polls';
 import { EOAccount } from '../../store/AppStore';
+import { readAsDataUrl, getYouTubeId } from '../../lib/fileToDataUrl';
 import { Tabs, SectionCard, StatusBadge, StatPill, EmptyState } from '../components/ui';
 
 const TABS = [
@@ -20,6 +33,38 @@ const RULE_LABELS: Record<SelectionType, string> = {
   single: 'Pilih 1 (single choice)',
   multi: 'Boleh pilih banyak (max N)',
 };
+
+interface CandidateDraft {
+  id: string;
+  name: string;
+  summary: string;
+  photo: string; // data URL once uploaded
+  region: string;
+  field: string;
+  tagline: string;
+  badge: string;
+  vision: string;
+  videoUrl: string;
+  programs: ProgramItem[];
+  expanded: boolean;
+}
+
+function emptyCandidateDraft(n: number): CandidateDraft {
+  return {
+    id: `new${n}`,
+    name: '',
+    summary: '',
+    photo: '',
+    region: '',
+    field: '',
+    tagline: '',
+    badge: '',
+    vision: '',
+    videoUrl: '',
+    programs: [],
+    expanded: false,
+  };
+}
 
 const ShareModal: React.FC<{ vote: Poll; onClose: () => void }> = ({ vote, onClose }) => (
   <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
@@ -35,12 +80,17 @@ const ShareModal: React.FC<{ vote: Poll; onClose: () => void }> = ({ vote, onClo
       </div>
       <p className="text-[13px] font-semibold text-[#191c1e] mb-1">{vote.question}</p>
       <p className="text-[11.5px] text-[#94a3b8] font-mono truncate mb-4">yourtix.web.id/vote/{vote.id}</p>
-      <button onClick={async () => {
-        try {
-          await navigator.clipboard.writeText(`https://yourtix.web.id/vote/${vote.id}`);
-          window.alert('Link disalin!');
-        } catch { /* clipboard unavailable */ }
-      }} className="w-full inline-flex items-center justify-center gap-2 bg-[#dc2626] text-white text-[13px] font-bold py-2.5 rounded-xl hover:bg-[#b91c1c] transition-colors cursor-pointer">
+      <button
+        onClick={async () => {
+          try {
+            await navigator.clipboard.writeText(`https://yourtix.web.id/vote/${vote.id}`);
+            window.alert('Link disalin!');
+          } catch {
+            /* clipboard unavailable */
+          }
+        }}
+        className="w-full inline-flex items-center justify-center gap-2 bg-[#dc2626] text-white text-[13px] font-bold py-2.5 rounded-xl hover:bg-[#b91c1c] transition-colors cursor-pointer"
+      >
         <Link2 size={14} />
         Salin Link
       </button>
@@ -63,22 +113,50 @@ export const VotingPage: React.FC<VotingPageProps> = ({ account }) => {
   // Create-vote form state
   const [title, setTitle] = useState('');
   const [relatedEvent, setRelatedEvent] = useState('');
+  const [coverImage, setCoverImage] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [ruleType, setRuleType] = useState<SelectionType>('single');
   const [maxN, setMaxN] = useState(2);
   const [showPublic, setShowPublic] = useState(true);
-  const [candidates, setCandidates] = useState<{ id: string; name: string; description: string }[]>([
-    { id: 'new1', name: '', description: '' },
-    { id: 'new2', name: '', description: '' },
-  ]);
+  const [candidates, setCandidates] = useState<CandidateDraft[]>([emptyCandidateDraft(1), emptyCandidateDraft(2)]);
 
-  const addCandidate = () => {
-    setCandidates((prev) => [...prev, { id: `new${prev.length + 1}`, name: '', description: '' }]);
-  };
+  const addCandidate = () => setCandidates((prev) => [...prev, emptyCandidateDraft(prev.length + 1)]);
   const removeCandidate = (id: string) => setCandidates((prev) => prev.filter((c) => c.id !== id));
-  const updateCandidate = (id: string, field: 'name' | 'description', value: string) => {
-    setCandidates((prev) => prev.map((c) => (c.id === id ? { ...c, [field]: value } : c)));
+  const updateCandidate = <K extends keyof CandidateDraft>(id: string, key: K, value: CandidateDraft[K]) => {
+    setCandidates((prev) => prev.map((c) => (c.id === id ? { ...c, [key]: value } : c)));
+  };
+
+  const handleCoverUpload = async (file: File | undefined) => {
+    if (!file) return;
+    setCoverImage(await readAsDataUrl(file));
+  };
+
+  const handleCandidatePhoto = async (id: string, file: File | undefined) => {
+    if (!file) return;
+    updateCandidate(id, 'photo', await readAsDataUrl(file));
+  };
+
+  const addProgram = (candidateId: string) => {
+    setCandidates((prev) =>
+      prev.map((c) =>
+        c.id === candidateId ? { ...c, programs: [...c.programs, { title: '', detail: '' }] } : c
+      )
+    );
+  };
+  const updateProgram = (candidateId: string, idx: number, field: 'title' | 'detail', value: string) => {
+    setCandidates((prev) =>
+      prev.map((c) =>
+        c.id === candidateId
+          ? { ...c, programs: c.programs.map((p, i) => (i === idx ? { ...p, [field]: value } : p)) }
+          : c
+      )
+    );
+  };
+  const removeProgram = (candidateId: string, idx: number) => {
+    setCandidates((prev) =>
+      prev.map((c) => (c.id === candidateId ? { ...c, programs: c.programs.filter((_, i) => i !== idx) } : c))
+    );
   };
 
   const handlePublish = () => {
@@ -88,9 +166,16 @@ export const VotingPage: React.FC<VotingPageProps> = ({ account }) => {
         id: `${Date.now()}-${i}`,
         number: String(i + 1).padStart(2, '0'),
         name: c.name,
-        photo: `https://images.unsplash.com/photo-${1500000000000 + i}?w=400&q=80`,
-        summary: c.description,
+        photo: c.photo || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400&q=80',
+        summary: c.summary,
         category: 'all',
+        region: c.region || undefined,
+        field: c.field || undefined,
+        tagline: c.tagline || undefined,
+        badge: c.badge || undefined,
+        vision: c.vision || undefined,
+        videoUrl: c.videoUrl || undefined,
+        programs: c.programs.filter((p) => p.title.trim()).length > 0 ? c.programs.filter((p) => p.title.trim()) : undefined,
         votes: 0,
       }));
 
@@ -110,7 +195,7 @@ export const VotingPage: React.FC<VotingPageProps> = ({ account }) => {
       closesLabel: endDate || '-',
       finalistCount: finalCandidates.length,
       ratioLabel: '1 Akun = 1 Suara Sah',
-      coverImage: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&q=80',
+      coverImage: coverImage || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&q=80',
       categoryLabel: relatedEvent || 'Komunitas',
       organizer: account.orgName,
       organizerVerified: account.verificationStatus === 'verified',
@@ -131,12 +216,10 @@ export const VotingPage: React.FC<VotingPageProps> = ({ account }) => {
     setVotes((prev) => [newVote, ...prev]);
     setTitle('');
     setRelatedEvent('');
+    setCoverImage('');
     setStartDate('');
     setEndDate('');
-    setCandidates([
-      { id: 'new1', name: '', description: '' },
-      { id: 'new2', name: '', description: '' },
-    ]);
+    setCandidates([emptyCandidateDraft(1), emptyCandidateDraft(2)]);
     setActive('manage');
   };
 
@@ -156,8 +239,11 @@ export const VotingPage: React.FC<VotingPageProps> = ({ account }) => {
       <Tabs tabs={TABS} active={active} onChange={setActive} />
 
       {active === 'create' && (
-        <SectionCard title="Buat Vote Baru" description="Vote ini akan muncul di Landing Page begitu di-publish.">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+        <SectionCard
+          title="Buat Vote Baru"
+          description="Vote ini akan muncul di Landing Page begitu di-publish. Angka suara, ranking, dan statistik pemilih dihitung otomatis oleh sistem — bukan diisi manual."
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="text-[12px] font-semibold text-[#191c1e] mb-1.5 block">Judul Vote</label>
               <input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px]" placeholder="cth. Penampil Penutup Festival" />
@@ -177,6 +263,21 @@ export const VotingPage: React.FC<VotingPageProps> = ({ account }) => {
           </div>
 
           <div className="mb-5">
+            <label className="text-[12px] font-semibold text-[#191c1e] mb-1.5 block">Cover Vote (upload dari device)</label>
+            <label className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-dashed border-[#e2e8f0] cursor-pointer hover:border-[#dc2626] transition-colors w-fit">
+              {coverImage ? (
+                <img src={coverImage} alt="Cover" className="w-12 h-12 rounded-lg object-cover" />
+              ) : (
+                <span className="w-12 h-12 rounded-lg bg-[#f1f5f9] flex items-center justify-center text-[#94a3b8]">
+                  <Upload size={16} />
+                </span>
+              )}
+              <span className="text-[12.5px] text-[#565e74]">{coverImage ? 'Ganti gambar' : 'Upload cover'}</span>
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => handleCoverUpload(e.target.files?.[0])} />
+            </label>
+          </div>
+
+          <div className="mb-5">
             <label className="text-[12px] font-semibold text-[#191c1e] mb-2 block">Aturan Pemilihan</label>
             <div className="flex flex-wrap gap-2">
               {(Object.keys(RULE_LABELS) as SelectionType[]).map((rule) => (
@@ -192,6 +293,7 @@ export const VotingPage: React.FC<VotingPageProps> = ({ account }) => {
             )}
           </div>
 
+          {/* Candidates */}
           <div className="mb-5">
             <div className="flex items-center justify-between mb-2.5">
               <label className="text-[12px] font-semibold text-[#191c1e]">Kandidat</label>
@@ -200,17 +302,103 @@ export const VotingPage: React.FC<VotingPageProps> = ({ account }) => {
                 Tambah Kandidat
               </button>
             </div>
-            <div className="space-y-2.5">
+
+            <div className="space-y-3">
               {candidates.map((c) => (
-                <div key={c.id} className="flex items-center gap-2.5 rounded-xl border border-[#e2e8f0] p-3">
-                  <span className="w-9 h-9 rounded-lg bg-[#f1f5f9] flex items-center justify-center shrink-0 text-[#94a3b8]">
-                    <VoteIcon size={15} />
-                  </span>
-                  <input value={c.name} onChange={(e) => updateCandidate(c.id, 'name', e.target.value)} placeholder="Nama kandidat" className="flex-1 min-w-[120px] px-3 py-2 rounded-lg border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13px]" />
-                  <input value={c.description} onChange={(e) => updateCandidate(c.id, 'description', e.target.value)} placeholder="Deskripsi singkat" className="flex-1 min-w-[120px] px-3 py-2 rounded-lg border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13px]" />
-                  <button onClick={() => removeCandidate(c.id)} className="text-[#94a3b8] hover:text-[#b3220f] shrink-0 cursor-pointer">
-                    <Trash2 size={15} />
-                  </button>
+                <div key={c.id} className="rounded-xl border border-[#e2e8f0] overflow-hidden">
+                  {/* Header row */}
+                  <div className="flex items-center gap-2.5 p-3 bg-[#fbfaff]">
+                    <label className="cursor-pointer shrink-0">
+                      {c.photo ? (
+                        <img src={c.photo} alt={c.name} className="w-10 h-10 rounded-full object-cover" />
+                      ) : (
+                        <span className="w-10 h-10 rounded-full bg-[#f1f5f9] flex items-center justify-center text-[#94a3b8]">
+                          <Upload size={14} />
+                        </span>
+                      )}
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleCandidatePhoto(c.id, e.target.files?.[0])} />
+                    </label>
+                    <input
+                      value={c.name}
+                      onChange={(e) => updateCandidate(c.id, 'name', e.target.value)}
+                      placeholder="Nama kandidat"
+                      className="flex-1 min-w-[100px] px-3 py-2 rounded-lg border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13px] bg-white"
+                    />
+                    <button
+                      onClick={() => updateCandidate(c.id, 'expanded', !c.expanded)}
+                      className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-[#565e74] hover:text-[#191c1e] px-2 py-1.5 rounded-lg hover:bg-white cursor-pointer shrink-0"
+                    >
+                      Detail
+                      <ChevronDown size={13} className={`transition-transform ${c.expanded ? 'rotate-180' : ''}`} />
+                    </button>
+                    <button onClick={() => removeCandidate(c.id)} className="text-[#94a3b8] hover:text-[#b3220f] shrink-0 cursor-pointer">
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+
+                  {/* Always-visible summary */}
+                  <div className="px-3 pt-3">
+                    <input
+                      value={c.summary}
+                      onChange={(e) => updateCandidate(c.id, 'summary', e.target.value)}
+                      placeholder="Deskripsi singkat / kutipan ringkas"
+                      className="w-full px-3 py-2 rounded-lg border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13px]"
+                    />
+                  </div>
+
+                  {/* Expandable detail fields */}
+                  {c.expanded && (
+                    <div className="p-3 pt-2.5 space-y-2.5">
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <input value={c.region} onChange={(e) => updateCandidate(c.id, 'region', e.target.value)} placeholder="Region / kota" className="px-3 py-2 rounded-lg border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13px]" />
+                        <input value={c.field} onChange={(e) => updateCandidate(c.id, 'field', e.target.value)} placeholder="Bidang / kategori" className="px-3 py-2 rounded-lg border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13px]" />
+                        <input value={c.tagline} onChange={(e) => updateCandidate(c.id, 'tagline', e.target.value)} placeholder="Tagline (opsional)" className="px-3 py-2 rounded-lg border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13px]" />
+                        <input value={c.badge} onChange={(e) => updateCandidate(c.id, 'badge', e.target.value)} placeholder="Badge kecil (opsional)" className="px-3 py-2 rounded-lg border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13px]" />
+                      </div>
+
+                      <textarea
+                        value={c.vision}
+                        onChange={(e) => updateCandidate(c.id, 'vision', e.target.value)}
+                        placeholder="Visi (kutipan yang ditampilkan besar di halaman detail)"
+                        rows={2}
+                        className="w-full px-3 py-2 rounded-lg border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13px] resize-none"
+                      />
+
+                      <label className="relative block">
+                        <Youtube size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
+                        <input
+                          value={c.videoUrl}
+                          onChange={(e) => updateCandidate(c.id, 'videoUrl', e.target.value)}
+                          placeholder="Link YouTube video orasi (opsional)"
+                          className="w-full pl-9 pr-3 py-2 rounded-lg border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13px] font-mono"
+                        />
+                      </label>
+                      {c.videoUrl && !getYouTubeId(c.videoUrl) && (
+                        <p className="text-[11px] text-[#b45309]">Link YouTube tidak dikenali — pastikan format seperti youtube.com/watch?v=... atau youtu.be/...</p>
+                      )}
+
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[11.5px] font-semibold text-[#565e74]">Program Unggulan</span>
+                          <button onClick={() => addProgram(c.id)} className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-[#dc2626] hover:underline cursor-pointer">
+                            <Plus size={11} />
+                            Tambah Program
+                          </button>
+                        </div>
+                        <div className="space-y-1.5">
+                          {c.programs.map((p, idx) => (
+                            <div key={idx} className="flex items-center gap-1.5">
+                              <input value={p.title} onChange={(e) => updateProgram(c.id, idx, 'title', e.target.value)} placeholder="Judul program" className="flex-1 min-w-[100px] px-2.5 py-1.5 rounded-lg border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[12.5px]" />
+                              <input value={p.detail} onChange={(e) => updateProgram(c.id, idx, 'detail', e.target.value)} placeholder="Detail" className="flex-1 min-w-[100px] px-2.5 py-1.5 rounded-lg border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[12.5px]" />
+                              <button onClick={() => removeProgram(c.id, idx)} className="text-[#94a3b8] hover:text-[#b3220f] shrink-0 cursor-pointer">
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -221,7 +409,10 @@ export const VotingPage: React.FC<VotingPageProps> = ({ account }) => {
             <span className="text-[13px] font-medium text-[#191c1e]">Tampilkan hasil ke publik</span>
           </label>
 
-          <button onClick={handlePublish} className="inline-flex items-center gap-2 bg-[#dc2626] text-white text-[13.5px] font-bold px-5 py-2.5 rounded-xl hover:bg-[#b91c1c] transition-colors cursor-pointer">
+          <button
+            onClick={handlePublish}
+            className="inline-flex items-center gap-2 bg-[#dc2626] text-white text-[13.5px] font-bold px-5 py-2.5 rounded-xl hover:bg-[#b91c1c] transition-colors cursor-pointer"
+          >
             <Plus size={16} />
             Simpan sebagai Draf
           </button>

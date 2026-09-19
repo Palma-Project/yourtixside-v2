@@ -4,8 +4,9 @@
  */
 
 import React, { useState } from 'react';
-import { ShieldCheck, UserPlus, Trash2, Smartphone, LogOut } from 'lucide-react';
+import { ShieldCheck, UserPlus, Trash2, Smartphone, LogOut, Upload } from 'lucide-react';
 import { EOAccount } from '../../store/AppStore';
+import { readAsDataUrl } from '../../lib/fileToDataUrl';
 import { Tabs, SectionCard, StatusBadge } from '../components/ui';
 
 const TABS = [
@@ -119,6 +120,30 @@ export const CreatorAccountPage: React.FC<CreatorAccountPageProps> = ({ account,
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+            <div className="sm:col-span-2 flex items-center gap-3">
+              <label className="cursor-pointer shrink-0">
+                {form.logo ? (
+                  <img src={form.logo} alt="Logo" className="w-14 h-14 rounded-xl object-cover border border-[#e2e8f0]" />
+                ) : (
+                  <span className="w-14 h-14 rounded-xl bg-[#f1f5f9] flex items-center justify-center text-[#94a3b8]">
+                    <Upload size={18} />
+                  </span>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) set('logo', await readAsDataUrl(file));
+                  }}
+                />
+              </label>
+              <div>
+                <div className="text-[12px] font-semibold text-[#191c1e]">Logo Organisasi</div>
+                <div className="text-[11px] text-[#94a3b8]">Klik gambar untuk upload dari device</div>
+              </div>
+            </div>
             <div className="sm:col-span-2">
               <label className="text-[12px] font-semibold text-[#191c1e] mb-1.5 block">Nama Organisasi</label>
               <input value={form.orgName} onChange={(e) => set('orgName', e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px]" />

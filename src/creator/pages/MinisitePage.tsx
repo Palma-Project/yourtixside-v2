@@ -4,8 +4,9 @@
  */
 
 import React, { useState } from 'react';
-import { Plus, Trash2, ExternalLink, Copy, Link2 } from 'lucide-react';
+import { Plus, Trash2, ExternalLink, Copy, Link2, Upload } from 'lucide-react';
 import { useAppStore, EOAccount, Minisite, MinisiteLink } from '../../store/AppStore';
+import { readAsDataUrl } from '../../lib/fileToDataUrl';
 import { SectionCard } from '../components/ui';
 
 interface MinisitePageProps {
@@ -100,12 +101,32 @@ export const MinisitePage: React.FC<MinisitePageProps> = ({ account }) => {
             <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={2} className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px] resize-none" />
           </div>
           <div>
-            <label className="text-[12px] font-semibold text-[#191c1e] mb-1.5 block">URL Foto Profil</label>
-            <input value={avatar} onChange={(e) => setAvatar(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px]" />
+            <label className="text-[12px] font-semibold text-[#191c1e] mb-1.5 block">Foto Profil</label>
+            <label className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-dashed border-[#e2e8f0] cursor-pointer hover:border-[#dc2626] transition-colors">
+              {avatar ? (
+                <img src={avatar} alt="Avatar" className="w-10 h-10 rounded-full object-cover" />
+              ) : (
+                <span className="w-10 h-10 rounded-full bg-[#f1f5f9] flex items-center justify-center text-[#94a3b8]">
+                  <Upload size={14} />
+                </span>
+              )}
+              <span className="text-[12.5px] text-[#565e74]">{avatar ? 'Ganti foto' : 'Upload foto'}</span>
+              <input type="file" accept="image/*" className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if (f) setAvatar(await readAsDataUrl(f)); }} />
+            </label>
           </div>
           <div>
-            <label className="text-[12px] font-semibold text-[#191c1e] mb-1.5 block">URL Gambar Cover</label>
-            <input value={coverImage} onChange={(e) => setCoverImage(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2e8f0] focus:border-[#dc2626] outline-none text-[13.5px]" />
+            <label className="text-[12px] font-semibold text-[#191c1e] mb-1.5 block">Gambar Cover</label>
+            <label className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-dashed border-[#e2e8f0] cursor-pointer hover:border-[#dc2626] transition-colors">
+              {coverImage ? (
+                <img src={coverImage} alt="Cover" className="w-10 h-10 rounded-lg object-cover" />
+              ) : (
+                <span className="w-10 h-10 rounded-lg bg-[#f1f5f9] flex items-center justify-center text-[#94a3b8]">
+                  <Upload size={14} />
+                </span>
+              )}
+              <span className="text-[12.5px] text-[#565e74]">{coverImage ? 'Ganti cover' : 'Upload cover'}</span>
+              <input type="file" accept="image/*" className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if (f) setCoverImage(await readAsDataUrl(f)); }} />
+            </label>
           </div>
         </div>
 
