@@ -7,14 +7,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { RoleType } from './types';
 import { Navbar } from './components/Navbar';
 import { BannerCarousel } from './components/BannerCarousel';
-import { RolesSection } from './components/RolesSection';
 import { TestimonialsSection } from './components/TestimonialsSection';
 import { SystemStatusBanner } from './components/SystemStatusBanner';
 import { EventsSection } from './components/EventsSection';
 import { VotingSection } from './components/VotingSection';
 import { Footer } from './components/Footer';
 import { PortalModal } from './components/PortalModal';
-import { AuthModal } from './components/AuthModal';
+import { RoleChooserModal } from './components/RoleChooserModal';
+import { UnifiedLoginModal } from './components/UnifiedLoginModal';
 import { InfoModal, InfoModalType } from './components/InfoModal';
 import { SystemStatusModal } from './components/SystemStatusModal';
 import { LiveSupportModal } from './components/LiveSupportModal';
@@ -25,6 +25,7 @@ import { CandidateDetail } from './pages/CandidateDetail';
 import { useAppStore } from './store/AppStore';
 import { useGeolocation } from './hooks/useGeolocation';
 import { useCreatorAuth } from './hooks/useCreatorAuth';
+import { useCustomerAuth } from './hooks/useCustomerAuth';
 import { CreatorLogin } from './creator/CreatorLogin';
 import { CreatorDashboard } from './creator/CreatorDashboard';
 import { useSuperadminAuth } from './hooks/useSuperadminAuth';
@@ -119,7 +120,11 @@ export default function App() {
 
   // Modal states for interactive features
   const [portalModalRole, setPortalModalRole] = useState<RoleType | null>(null);
-  const [authModalMode, setAuthModalMode] = useState<'login' | 'signup' | null>(null);
+  const [authIntent, setAuthIntent] = useState<'login' | 'signup' | null>(null);
+  const [creatorAuthMode, setCreatorAuthMode] = useState<'login' | 'signup'>('login');
+  const [customerPortalInitialView, setCustomerPortalInitialView] = useState<'portal' | 'login'>('portal');
+  const [customerAuthMode, setCustomerAuthMode] = useState<'login' | 'signup'>('login');
+  const customerAuthCheck = useCustomerAuth();
   const [infoModalType, setInfoModalType] = useState<InfoModalType | null>(null);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
@@ -248,6 +253,7 @@ export default function App() {
           login={creatorAuth.login}
           signup={creatorAuth.signup}
           error={creatorAuth.error}
+          initialMode={creatorAuthMode}
           onSuccess={() => {}}
           onBackHome={exitCreatorPortal}
         />
@@ -278,7 +284,14 @@ export default function App() {
   }
 
   if (onCustomerRoute) {
-    return <CustomerPortal onBackHome={exitCustomerPortal} onOpenVote={openPoll} />;
+    return (
+      <CustomerPortal
+        onBackHome={exitCustomerPortal}
+        onOpenVote={openPoll}
+        initialView={customerPortalInitialView}
+        initialLoginMode={customerAuthMode}
+      />
+    );
   }
 
   if (activeMinisite) {
@@ -293,7 +306,7 @@ export default function App() {
       <SystemStatusBanner />
       <Navbar
         onOpenHome={backToHome}
-        onOpenAuth={(mode) => setAuthModalMode(mode)}
+        onOpenAuth={(mode) => setAuthIntent(mode)}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onSelectSuggestion={(kind, id) => (kind === 'event' ? openEvent(id) : openPoll(id))}
@@ -333,9 +346,6 @@ export default function App() {
           {/* Voting / polls */}
           <VotingSection onOpenPoll={openPoll} />
 
-          {/* 3 entry points: Event Creator / Customer / Superadmin */}
-          <RolesSection onSelectRole={handleOpenPortal} />
-
           {/* Testimonials (approved + pinned by Superadmin) */}
           <TestimonialsSection />
         </>
@@ -363,12 +373,39 @@ export default function App() {
         />
       )}
 
-      {authModalMode && (
-        <AuthModal
-          initialTab={authModalMode}
-          onClose={() => setAuthModalMode(null)}
-          onSuccessRole={(role) => {
-            setPortalModalRole(role);
+      {authIntent === 'signup' && (
+        <RoleChooserModal
+          onClose={() => setAuthIntent(null)}
+          onChoose={(role) => {
+            setAuthIntent(null);
+            if (role === 'creator') {
+              setCreatorAuthMode('signup');
+              openCreatorPortal();
+            } else {
+              setCustomerAuthMode('signup');
+              setCustomerPortalInitialView('login');
+              openCustomerPortal();
+            }
+          }}
+        />
+      )}
+
+      {authIntent === 'login' && (
+        <UnifiedLoginModal
+          onClose={() => setAuthIntent(null)}
+          onGoToSignup={() => setAuthIntent('signup')}
+          tryCreatorLogin={creatorAuth.login}
+          tryCustomerLogin={customerAuthCheck.login}
+          onGoogleCustomer={customerAuthCheck.continueWithGoogle}
+          onLoggedInAsCreator={() => {
+            setAuthIntent(null);
+            setCreatorAuthMode('login');
+            openCreatorPortal();
+          }}
+          onLoggedInAsCustomer={() => {
+            setAuthIntent(null);
+            setCustomerPortalInitialView('portal');
+            openCustomerPortal();
           }}
         />
       )}

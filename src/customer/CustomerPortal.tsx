@@ -42,10 +42,17 @@ function generateTicketNumber() {
 interface CustomerPortalProps {
   onBackHome: () => void;
   onOpenVote: (id: string) => void;
+  initialView?: 'portal' | 'login';
+  initialLoginMode?: 'login' | 'signup';
 }
 
-export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onBackHome, onOpenVote }) => {
-  const [view, setView] = useState<'portal' | 'login' | 'account'>('portal');
+export const CustomerPortal: React.FC<CustomerPortalProps> = ({
+  onBackHome,
+  onOpenVote,
+  initialView = 'portal',
+  initialLoginMode = 'login',
+}) => {
+  const [view, setView] = useState<'portal' | 'login' | 'account'>(initialView);
   const { votes, complaints, setComplaints, chats, setChats, faq, logActivity } = useAppStore();
   const auth = useCustomerAuth();
   const { user: googleUser, renderButtonInto } = useGoogleAuth();
@@ -146,6 +153,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onBackHome, onOp
         signup={auth.signup}
         continueWithGoogle={auth.continueWithGoogle}
         error={auth.error}
+        initialMode={initialLoginMode}
         onSuccess={() => setView('portal')}
         onBackHome={() => setView('portal')}
       />
