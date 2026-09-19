@@ -35,7 +35,12 @@ const ShareModal: React.FC<{ vote: Poll; onClose: () => void }> = ({ vote, onClo
       </div>
       <p className="text-[13px] font-semibold text-[#191c1e] mb-1">{vote.question}</p>
       <p className="text-[11.5px] text-[#94a3b8] font-mono truncate mb-4">yourtix.web.id/vote/{vote.id}</p>
-      <button className="w-full inline-flex items-center justify-center gap-2 bg-[#dc2626] text-white text-[13px] font-bold py-2.5 rounded-xl hover:bg-[#b91c1c] transition-colors cursor-pointer">
+      <button onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(`https://yourtix.web.id/vote/${vote.id}`);
+          window.alert('Link disalin!');
+        } catch { /* clipboard unavailable */ }
+      }} className="w-full inline-flex items-center justify-center gap-2 bg-[#dc2626] text-white text-[13px] font-bold py-2.5 rounded-xl hover:bg-[#b91c1c] transition-colors cursor-pointer">
         <Link2 size={14} />
         Salin Link
       </button>

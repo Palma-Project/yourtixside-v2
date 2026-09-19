@@ -253,7 +253,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ account }) => {
                 <Clock size={13} />
                 Setelah submit, status akan tampil di "Tracking Status Pengajuan MOU" di bawah.
               </span>
-              <button className="inline-flex items-center gap-1.5 bg-[#dc2626] text-white text-[12.5px] font-bold px-4 py-2 rounded-lg hover:bg-[#b91c1c] transition-colors cursor-pointer shrink-0">
+              <button onClick={() => window.alert('Data ini sudah diajukan otomatis saat Anda mendaftar dan sedang ditinjau Superadmin — lihat status verifikasi di halaman Akun Saya.')} className="inline-flex items-center gap-1.5 bg-[#dc2626] text-white text-[12.5px] font-bold px-4 py-2 rounded-lg hover:bg-[#b91c1c] transition-colors cursor-pointer shrink-0">
                 <UserPlus size={13} />
                 Ajukan Verifikasi
               </button>

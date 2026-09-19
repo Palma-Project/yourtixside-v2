@@ -5,8 +5,8 @@
 
 import React, { useState } from 'react';
 import { Plus, Pin, CheckCircle2, XCircle, FileImage, Download } from 'lucide-react';
-import { blogPosts } from '../../data/superadminData';
-import { brandAssets } from '../../data/creatorData';
+import { blogPosts as seedBlogPosts, BlogPost } from '../../data/superadminData';
+import { brandAssets as seedAssets, BrandAsset } from '../../data/creatorData';
 import { useAppStore } from '../../store/AppStore';
 import { Tabs, SectionCard, StatusBadge } from '../../creator/components/ui';
 import { BannerManager } from '../components/BannerManager';
@@ -28,6 +28,24 @@ export const ContentPage: React.FC = () => {
   const [active, setActive] = useState('content');
   const [contentTab, setContentTab] = useState('faq');
   const { faq, setFaq, testimonials, setTestimonials, banners, setBanners } = useAppStore();
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>(seedBlogPosts);
+  const [brandAssets, setBrandAssets] = useState<BrandAsset[]>(seedAssets);
+
+  const addBlogPost = () => {
+    const title = window.prompt('Judul artikel baru:');
+    if (!title) return;
+    setBlogPosts((prev) => [{ id: `bp${Date.now()}`, title, status: 'draft' }, ...prev]);
+  };
+
+  const addAsset = () => {
+    const name = window.prompt('Nama aset baru:');
+    if (!name) return;
+    setBrandAssets((prev) => [...prev, { id: `a${Date.now()}`, name, kind: 'Banner Promosi', fileType: 'PNG', size: '—' }]);
+  };
+
+  const editTutorial = (title: string) => {
+    window.alert(`Membuka editor untuk "${title}" (simulasi — belum ada rich text editor).`);
+  };
 
   const reviewTestimonial = (id: string, status: 'approved' | 'rejected') => {
     setTestimonials((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
@@ -84,7 +102,7 @@ export const ContentPage: React.FC = () => {
               title="Blog / Tips"
               description="Artikel yang tampil di halaman blog publik."
               action={
-                <button className="inline-flex items-center gap-1.5 bg-[#dc2626] text-white text-[12.5px] font-bold px-3.5 py-2 rounded-lg hover:bg-[#b91c1c] transition-colors cursor-pointer">
+                <button onClick={addBlogPost} className="inline-flex items-center gap-1.5 bg-[#dc2626] text-white text-[12.5px] font-bold px-3.5 py-2 rounded-lg hover:bg-[#b91c1c] transition-colors cursor-pointer">
                   <Plus size={13} />
                   Tulis Artikel
                 </button>
@@ -111,7 +129,7 @@ export const ContentPage: React.FC = () => {
                   (title) => (
                     <div key={title} className="rounded-xl border border-[#f1f5f9] px-3.5 py-3 flex items-center justify-between">
                       <span className="text-[13px] font-semibold text-[#191c1e]">{title}</span>
-                      <button className="text-[12px] font-semibold text-[#dc2626] hover:underline cursor-pointer shrink-0">
+                      <button onClick={() => editTutorial(title)} className="text-[12px] font-semibold text-[#dc2626] hover:underline cursor-pointer shrink-0">
                         Edit
                       </button>
                     </div>
@@ -126,7 +144,7 @@ export const ContentPage: React.FC = () => {
               title="Aset Unduhan"
               description="Aset resmi yang tersedia di Pusat Unduhan Aset milik EO."
               action={
-                <button className="inline-flex items-center gap-1.5 bg-[#dc2626] text-white text-[12.5px] font-bold px-3.5 py-2 rounded-lg hover:bg-[#b91c1c] transition-colors cursor-pointer">
+                <button onClick={addAsset} className="inline-flex items-center gap-1.5 bg-[#dc2626] text-white text-[12.5px] font-bold px-3.5 py-2 rounded-lg hover:bg-[#b91c1c] transition-colors cursor-pointer">
                   <Plus size={13} />
                   Upload Aset
                 </button>
@@ -142,7 +160,7 @@ export const ContentPage: React.FC = () => {
                       <div className="text-[13px] font-semibold text-[#191c1e] truncate">{asset.name}</div>
                       <div className="text-[11px] text-[#94a3b8]">{asset.fileType} • {asset.size}</div>
                     </div>
-                    <button className="text-[#dc2626] hover:text-[#b91c1c] shrink-0 cursor-pointer">
+                    <button onClick={() => window.alert(`Mengunduh ${asset.name}... (simulasi)`)} className="text-[#dc2626] hover:text-[#b91c1c] shrink-0 cursor-pointer">
                       <Download size={17} />
                     </button>
                   </div>

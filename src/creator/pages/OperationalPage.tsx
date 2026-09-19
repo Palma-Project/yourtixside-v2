@@ -95,7 +95,7 @@ export const OperationalPage: React.FC = () => {
                   <div className="text-[13px] font-semibold text-[#191c1e] truncate">{asset.name}</div>
                   <div className="text-[11px] text-[#94a3b8]">{asset.fileType} • {asset.size}</div>
                 </div>
-                <button className="text-[#dc2626] hover:text-[#b91c1c] shrink-0 cursor-pointer">
+                <button onClick={() => window.alert(`Mengunduh ${asset.name}... (simulasi)`)} className="text-[#dc2626] hover:text-[#b91c1c] shrink-0 cursor-pointer">
                   <Download size={17} />
                 </button>
               </div>

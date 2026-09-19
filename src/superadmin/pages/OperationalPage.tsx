@@ -187,10 +187,10 @@ export const OperationalPage: React.FC = () => {
             <StatPill label="Menunggu Moderasi" value={12} icon={<Camera size={15} />} />
           </div>
           <div className="flex flex-wrap gap-2.5">
-            <button className="inline-flex items-center gap-1.5 bg-[#dc2626] text-white text-[12.5px] font-bold px-3.5 py-2 rounded-lg hover:bg-[#b91c1c] transition-colors cursor-pointer">
+            <button onClick={() => window.alert('Membuka pengaturan frame fotobooth... (simulasi — modul ini belum terhubung ke data live)')} className="inline-flex items-center gap-1.5 bg-[#dc2626] text-white text-[12.5px] font-bold px-3.5 py-2 rounded-lg hover:bg-[#b91c1c] transition-colors cursor-pointer">
               Kelola Frame
             </button>
-            <button className="inline-flex items-center gap-1.5 border border-[#e2e8f0] text-[#191c1e] text-[12.5px] font-bold px-3.5 py-2 rounded-lg hover:bg-[#f2f4f6] transition-colors cursor-pointer">
+            <button onClick={() => window.alert('Membuka galeri moderasi fotobooth... (simulasi — modul ini belum terhubung ke data live)')} className="inline-flex items-center gap-1.5 border border-[#e2e8f0] text-[#191c1e] text-[12.5px] font-bold px-3.5 py-2 rounded-lg hover:bg-[#f2f4f6] transition-colors cursor-pointer">
               Moderasi Galeri
             </button>
           </div>

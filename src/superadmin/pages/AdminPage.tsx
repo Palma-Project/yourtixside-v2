@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { UserPlus, ShieldCheck } from 'lucide-react';
-import { staffMembers } from '../../data/superadminData';
+import { staffMembers as seedStaff, StaffMember } from '../../data/superadminData';
 import { Tabs, SectionCard } from '../../creator/components/ui';
 
 const TABS = [
@@ -15,6 +15,22 @@ const TABS = [
 
 export const AdminPage: React.FC = () => {
   const [active, setActive] = useState('staff');
+  const [staff, setStaff] = useState<StaffMember[]>(seedStaff);
+
+  const inviteStaff = () => {
+    const email = window.prompt('Email staff yang diundang:');
+    if (!email) return;
+    const role = window.prompt('Role (CS Staff / Content Staff / Finance Staff):', 'CS Staff') || 'CS Staff';
+    setStaff((prev) => [
+      ...prev,
+      { id: `st${Date.now()}`, name: email.split('@')[0], role: role as StaffMember['role'], modules: ['Belum diatur'] },
+    ]);
+    window.alert(`Undangan telah dikirim ke ${email}. (simulasi — akun aktif langsung setelah "diterima")`);
+  };
+
+  const manageStaff = (id: string) => {
+    setStaff((prev) => prev.filter((s) => s.id !== id));
+  };
 
   return (
     <div>
@@ -25,14 +41,14 @@ export const AdminPage: React.FC = () => {
           title="User & Akses"
           description="Delegasikan kerja ke staff tanpa memberi akses penuh ke semua modul."
           action={
-            <button className="inline-flex items-center gap-1.5 bg-[#dc2626] text-white text-[12.5px] font-bold px-3.5 py-2 rounded-lg hover:bg-[#b91c1c] transition-colors cursor-pointer">
+            <button onClick={inviteStaff} className="inline-flex items-center gap-1.5 bg-[#dc2626] text-white text-[12.5px] font-bold px-3.5 py-2 rounded-lg hover:bg-[#b91c1c] transition-colors cursor-pointer">
               <UserPlus size={13} />
               Undang Staff
             </button>
           }
         >
           <div className="space-y-2.5">
-            {staffMembers.map((s) => (
+            {staff.map((s) => (
               <div key={s.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-[#e2e8f0] p-3.5">
                 <span className="w-9 h-9 rounded-full bg-[#191c1e] text-white flex items-center justify-center text-[13px] font-bold shrink-0">
                   {s.name.charAt(0)}
@@ -51,8 +67,8 @@ export const AdminPage: React.FC = () => {
                     </span>
                   ))}
                 </div>
-                <button className="text-[12px] font-semibold text-[#dc2626] hover:underline cursor-pointer shrink-0">
-                  Kelola
+                <button onClick={() => manageStaff(s.id)} className="text-[12px] font-semibold text-[#dc2626] hover:underline cursor-pointer shrink-0">
+                  Hapus
                 </button>
               </div>
             ))}

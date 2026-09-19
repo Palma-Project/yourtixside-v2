@@ -16,6 +16,7 @@ interface CustomerAccountPageProps {
   complaints: SharedComplaint[];
   onUpdate: (updates: Partial<CustomerAccount>) => void;
   onLogout: () => void;
+  onDeleteAccount: () => void;
   onBack: () => void;
 }
 
@@ -25,6 +26,7 @@ export const CustomerAccountPage: React.FC<CustomerAccountPageProps> = ({
   complaints,
   onUpdate,
   onLogout,
+  onDeleteAccount,
   onBack,
 }) => {
   const [form, setForm] = useState(account);
@@ -39,7 +41,25 @@ export const CustomerAccountPage: React.FC<CustomerAccountPageProps> = ({
     setTimeout(() => setSaved(false), 1800);
   };
 
-  const votedPolls = votes.filter((v) => v.votedEmails.includes(account.email));
+  const votedPolls = votes.filter((v) => (v.votedEmails ?? []).includes(account.email));
+
+  const downloadMyData = () => {
+    const payload = { account, votedPolls: votedPolls.map((v) => v.question), complaints };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `yourtixside-data-${account.email}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDeleteAccount = () => {
+    const confirmText = window.prompt('Ketik "HAPUS" untuk konfirmasi penghapusan akun permanen:');
+    if (confirmText === 'HAPUS') {
+      onDeleteAccount();
+    }
+  };
   const myComplaints = complaints.filter((c) => c.reporterEmail.toLowerCase() === account.email.toLowerCase());
   const myMoments = momentPhotos.filter((p) => p.submitterEmail === account.email);
 
@@ -163,11 +183,11 @@ export const CustomerAccountPage: React.FC<CustomerAccountPageProps> = ({
 
         <SectionCard title="Lainnya">
           <div className="flex flex-wrap gap-2.5">
-            <button className="inline-flex items-center gap-1.5 border border-[#e2e8f0] text-[#191c1e] text-[12.5px] font-semibold px-3.5 py-2 rounded-lg hover:bg-[#f2f4f6] transition-colors cursor-pointer">
+            <button onClick={downloadMyData} className="inline-flex items-center gap-1.5 border border-[#e2e8f0] text-[#191c1e] text-[12.5px] font-semibold px-3.5 py-2 rounded-lg hover:bg-[#f2f4f6] transition-colors cursor-pointer">
               <Download size={13} />
               Unduh Data Saya
             </button>
-            <button className="inline-flex items-center gap-1.5 border border-[#fecaca] text-[#b3220f] text-[12.5px] font-semibold px-3.5 py-2 rounded-lg hover:bg-[#fef2f2] transition-colors cursor-pointer">
+            <button onClick={handleDeleteAccount} className="inline-flex items-center gap-1.5 border border-[#fecaca] text-[#b3220f] text-[12.5px] font-semibold px-3.5 py-2 rounded-lg hover:bg-[#fef2f2] transition-colors cursor-pointer">
               <Trash2 size={13} />
               Hapus Akun
             </button>

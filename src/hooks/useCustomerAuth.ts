@@ -117,6 +117,12 @@ export function useCustomerAuth() {
     persist(null);
   }, []);
 
+  const deleteAccount = useCallback(() => {
+    if (!session) return;
+    setCustomerAccounts((prev) => prev.filter((c) => c.id !== session.id));
+    persist(null);
+  }, [session, setCustomerAccounts]);
+
   const updateProfile = useCallback(
     (updates: Partial<CustomerAccount>) => {
       if (!session) return;
@@ -125,5 +131,5 @@ export function useCustomerAuth() {
     [session, setCustomerAccounts]
   );
 
-  return { session, error, login, signup, continueWithGoogle, logout, updateProfile };
+  return { session, error, login, signup, continueWithGoogle, logout, deleteAccount, updateProfile };
 }

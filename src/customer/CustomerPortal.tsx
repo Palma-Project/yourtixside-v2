@@ -163,6 +163,10 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onBackHome, onOp
           auth.logout();
           setView('portal');
         }}
+        onDeleteAccount={() => {
+          auth.deleteAccount();
+          setView('portal');
+        }}
         onBack={() => setView('portal')}
       />
     );

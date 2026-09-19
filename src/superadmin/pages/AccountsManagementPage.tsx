@@ -17,7 +17,7 @@ const TABS = [
 const statusMap: Record<AccountStatus, string> = { aktif: 'signed', nonaktif: 'draf', suspend: 'rejected' };
 
 export const AccountsManagementPage: React.FC = () => {
-  const { eoAccounts, setEoAccounts, customerAccounts, setCustomerAccounts, logAudit, logActivity, accountAudit } = useAppStore();
+  const { eoAccounts, setEoAccounts, customerAccounts, setCustomerAccounts, votes, setVotes, logAudit, logActivity, accountAudit } = useAppStore();
   const [active, setActive] = useState('eo');
   const [query, setQuery] = useState('');
   const [detailEO, setDetailEO] = useState<EOAccount | null>(null);
@@ -68,6 +68,30 @@ export const AccountsManagementPage: React.FC = () => {
     setEoAccounts((prev) => prev.filter((e) => e.id !== id));
     logAudit({ accountId: id, accountKind: 'eo', action: 'delete account', by: 'Superadmin' });
     setDetailEO(null);
+  };
+
+  const resetPassword = (kind: 'eo' | 'customer', id: string, label: string) => {
+    logAudit({ accountId: id, accountKind: kind, action: 'reset password', by: 'Superadmin' });
+    window.alert(`Link reset password telah dikirim ke email ${label}. (simulasi)`);
+  };
+
+  const forceLogout = (kind: 'eo' | 'customer', id: string, label: string) => {
+    logAudit({ accountId: id, accountKind: kind, action: 'force logout all devices', by: 'Superadmin' });
+    window.alert(`${label} telah di-logout paksa dari semua device. (simulasi)`);
+  };
+
+  const revokeVoteRight = (customerEmail: string) => {
+    const voteTitle = window.prompt('Cabut hak vote pada polling mana? Ketik judul poll (harus sama persis):');
+    if (!voteTitle) return;
+    setVotes((prev) =>
+      prev.map((v) =>
+        v.question.toLowerCase() === voteTitle.toLowerCase()
+          ? { ...v, votedEmails: (v.votedEmails ?? []).filter((e) => e !== customerEmail) }
+          : v
+      )
+    );
+    logAudit({ accountId: customerEmail, accountKind: 'customer', action: `revoke vote right on "${voteTitle}"`, by: 'Superadmin' });
+    window.alert(`Hak vote ${customerEmail} pada "${voteTitle}" telah dicabut (bisa vote ulang).`);
   };
 
   const deleteCustomer = (id: string) => {
@@ -227,8 +251,8 @@ export const AccountsManagementPage: React.FC = () => {
             </div>
 
             <div className="flex flex-wrap gap-2 pt-3 border-t border-[#f1f5f9]">
-              <button className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#565e74] hover:text-[#191c1e] px-2.5 py-1.5 rounded-lg hover:bg-[#f2f4f6] cursor-pointer"><KeyRound size={12} />Reset Password</button>
-              <button className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#565e74] hover:text-[#191c1e] px-2.5 py-1.5 rounded-lg hover:bg-[#f2f4f6] cursor-pointer"><LogOut size={12} />Force Logout</button>
+              <button onClick={() => resetPassword('eo', detailEO.id, detailEO.email)} className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#565e74] hover:text-[#191c1e] px-2.5 py-1.5 rounded-lg hover:bg-[#f2f4f6] cursor-pointer"><KeyRound size={12} />Reset Password</button>
+              <button onClick={() => forceLogout('eo', detailEO.id, detailEO.orgName)} className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#565e74] hover:text-[#191c1e] px-2.5 py-1.5 rounded-lg hover:bg-[#f2f4f6] cursor-pointer"><LogOut size={12} />Force Logout</button>
             </div>
           </div>
         </div>
@@ -257,9 +281,9 @@ export const AccountsManagementPage: React.FC = () => {
             </div>
 
             <div className="flex flex-wrap gap-2 pt-3 border-t border-[#f1f5f9]">
-              <button className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#565e74] hover:text-[#191c1e] px-2.5 py-1.5 rounded-lg hover:bg-[#f2f4f6] cursor-pointer"><KeyRound size={12} />Reset Password</button>
-              <button className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#565e74] hover:text-[#191c1e] px-2.5 py-1.5 rounded-lg hover:bg-[#f2f4f6] cursor-pointer"><LogOut size={12} />Force Logout</button>
-              <button className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#565e74] hover:text-[#191c1e] px-2.5 py-1.5 rounded-lg hover:bg-[#f2f4f6] cursor-pointer"><Ban size={12} />Cabut Hak Vote</button>
+              <button onClick={() => resetPassword('customer', detailCustomer.id, detailCustomer.email)} className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#565e74] hover:text-[#191c1e] px-2.5 py-1.5 rounded-lg hover:bg-[#f2f4f6] cursor-pointer"><KeyRound size={12} />Reset Password</button>
+              <button onClick={() => forceLogout('customer', detailCustomer.id, detailCustomer.name)} className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#565e74] hover:text-[#191c1e] px-2.5 py-1.5 rounded-lg hover:bg-[#f2f4f6] cursor-pointer"><LogOut size={12} />Force Logout</button>
+              <button onClick={() => revokeVoteRight(detailCustomer.email)} className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#565e74] hover:text-[#191c1e] px-2.5 py-1.5 rounded-lg hover:bg-[#f2f4f6] cursor-pointer"><Ban size={12} />Cabut Hak Vote</button>
             </div>
           </div>
         </div>

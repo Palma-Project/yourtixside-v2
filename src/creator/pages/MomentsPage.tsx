@@ -29,7 +29,12 @@ const ShareModal: React.FC<{ session: MomentSession; onClose: () => void }> = ({
       <p className="text-[11.5px] text-[#94a3b8] font-mono truncate mb-4">
         yourtix.web.id/moment/{session.id}
       </p>
-      <button className="w-full inline-flex items-center justify-center gap-2 bg-[#dc2626] text-white text-[13px] font-bold py-2.5 rounded-xl hover:bg-[#b91c1c] transition-colors cursor-pointer">
+      <button onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(`https://yourtix.web.id/moment/${session.id}`);
+          window.alert('Link disalin!');
+        } catch { /* clipboard unavailable */ }
+      }} className="w-full inline-flex items-center justify-center gap-2 bg-[#dc2626] text-white text-[13px] font-bold py-2.5 rounded-xl hover:bg-[#b91c1c] transition-colors cursor-pointer">
         <Link2 size={14} />
         Salin Link
       </button>
@@ -195,7 +200,7 @@ export const MomentsPage: React.FC = () => {
                         {p.submitterEmail}
                       </p>
                     )}
-                    <button className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-[#dc2626] hover:underline cursor-pointer">
+                    <button onClick={() => window.alert(`Mengunduh foto: ${p.caption}... (simulasi)`)} className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-[#dc2626] hover:underline cursor-pointer">
                       <Download size={11} />
                       Unduh
                     </button>

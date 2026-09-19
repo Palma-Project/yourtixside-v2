@@ -63,7 +63,12 @@ const ShareModal: React.FC<{ form: EOForm; onClose: () => void }> = ({ form, onC
         yourtix.web.id/form/{form.id}
       </p>
       <p className="text-[11px] text-[#94a3b8] mb-4">Bisa diakses publik tanpa perlu login.</p>
-      <button className="w-full inline-flex items-center justify-center gap-2 bg-[#dc2626] text-white text-[13px] font-bold py-2.5 rounded-xl hover:bg-[#b91c1c] transition-colors cursor-pointer">
+      <button onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(`https://yourtix.web.id/form/${form.id}`);
+          window.alert('Link disalin!');
+        } catch { /* clipboard unavailable */ }
+      }} className="w-full inline-flex items-center justify-center gap-2 bg-[#dc2626] text-white text-[13px] font-bold py-2.5 rounded-xl hover:bg-[#b91c1c] transition-colors cursor-pointer">
         <Link2 size={14} />
         Salin Link
       </button>
@@ -297,7 +302,17 @@ export const FormsPage: React.FC = () => {
                 </option>
               ))}
             </select>
-            <button className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[#565e74] hover:text-[#191c1e] px-3 py-2 rounded-lg border border-[#e2e8f0] cursor-pointer">
+            <button onClick={() => {
+              const rows = submissionsForm?.submissions.map((s) => `${s.submitterName},${s.submitterEmail},${s.submittedAt},${s.status}`).join('\n') ?? '';
+              const csv = `Nama,Email,Tanggal,Status\n${rows}`;
+              const blob = new Blob([csv], { type: 'text/csv' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `${submissionsForm?.title ?? 'submissions'}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }} className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[#565e74] hover:text-[#191c1e] px-3 py-2 rounded-lg border border-[#e2e8f0] cursor-pointer">
               <Download size={13} />
               Export CSV
             </button>
